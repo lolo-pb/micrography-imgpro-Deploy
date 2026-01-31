@@ -179,3 +179,6 @@ preprodata/
 procimgs/
 rawdata/
 models/
+processed_fibers/
+processed_flashes/
+processed_pores/
