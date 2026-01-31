@@ -4,6 +4,7 @@ import glob
 import argparse
 from getmeresults import getMeResults
 
+## Checking for flags 
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", "--fibers", action="store_true") 
 parser.add_argument("-fl", "--flashes", action="store_true")
@@ -11,11 +12,22 @@ parser.add_argument("-p", "--pores", action="store_true")
 args = parser.parse_args()
 
 
+## In/Out
 input_folder = 'preprodata'
 output_folder = 'processed_results'
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
 
+image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.tif']
+files_to_process = []
+for ext in image_extensions:
+    files_to_process.extend(glob.glob(os.path.join(input_folder, ext)))
+print(f"Found {len(files_to_process)} images. Starting processing...")
+
+all_stats = []
+
+
+## Filetr parameters, TODO : these are hardoded / they might not nees to be
 parameters = {
     'first_kernel_size': (5,5),
     'second_kernel_size': (3,3),
@@ -27,16 +39,6 @@ parameters = {
     'ws_ths_factor': 0.025,
     'ws_gl_vecinity': 15,
 }
-
-image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.tif']
-files_to_process = []
-for ext in image_extensions:
-    files_to_process.extend(glob.glob(os.path.join(input_folder, ext)))
-
-all_stats = []
-
-print(f"Found {len(files_to_process)} images. Starting processing...")
-
 
 if args.fibers or args.flashes or args.pores:
     if args.fibers:
@@ -62,20 +64,20 @@ else:
         print(f"Processing [{i}] ...")
         filename = os.path.basename(file_path)
         name_only = os.path.splitext(filename)[0]
-        
+
         base_img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
         if base_img is None:
             continue
-        
+
         stats, segmentation, coloring = getMeResults(base_img, parameters)
-        
+
         stats['filename'] = filename
         all_stats.append(stats)
-    
+
         cv2.imwrite(os.path.join(output_folder, f"{name_only}_seg.png"), segmentation)
-        
+
         cv2.imwrite(os.path.join(output_folder, f"{name_only}_color.png"), coloring)
         print("Done.")
         i += 1
-    
+
     print(f"Processing complete! Results saved in '{output_folder}'.")
