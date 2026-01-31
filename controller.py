@@ -2,7 +2,11 @@ import cv2
 import os
 import glob
 import argparse
+
 from getmeresults import getMeResults
+import getmepores as gmp
+import getmeflashes as gmfl
+import getmefibers as gmf
 
 ## Checking for flags 
 parser = argparse.ArgumentParser()
@@ -14,9 +18,6 @@ args = parser.parse_args()
 
 ## In/Out
 input_folder = 'preprodata'
-output_folder = 'processed_results'
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
 
 image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.tif']
 files_to_process = []
@@ -41,23 +42,64 @@ parameters = {
 }
 
 if args.fibers or args.flashes or args.pores:
+### Run only Fibers 
     if args.fibers:
         print("Processing Fibers...")
+        
+        output_folder = 'processed_fibers'
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
 
-        # run getmefibers
+        i = 0
+        for file_path in files_to_process:
+            print(f"Processing [{i+1}] ...")
+            filename = os.path.basename(file_path)
+            name_only = os.path.splitext(filename)[0]
+    
+            base_img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+            if base_img is None:
+                continue
+            print(f"            |{filename}")
+            
+            binary_mask, contours_filtered_img, list_masks = gmf.getMeFibers(base_img,bh_ks=parameters['bh_ks'],bhm_iter=parameters['bhm_iter'],bhm_mult=parameters['bhm_mult'],cont_mult=parameters['cont_mult'],ws_ths_factor=parameters['ws_ths_factor'],ws_gl_vecinity=parameters['ws_gl_vecinity'])
+     
+            cv2.imwrite(os.path.join(output_folder, f"{name_only}_fib.png"), binary_mask)
+            print("Done.")
+            i += 1
+    
+        print(f"Processing complete! Results saved in '{output_folder}'.")
 
+### Run only Flashes 
     if args.flashes:
         print("Processing Flashes...")
 
-        # run getmeflashe
+        output_folder = 'processed_flashes'
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
 
+
+        # run getmeflashe
+        flashes_mask = gmfl.getMeFlashes(base_img,cont_mult=parameters['cont_mult'])
+
+### Run only Pores 
     if args.pores:
         print("Processing Pores...")
 
-        # run getme pores
+        output_folder = 'processed_pores'
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
 
+        # run getme pores
+        pores_mask, undefined_mask = gmp.getMetPores(base_img,first_kernel_size=parameters['first_kernel_size'],second_kernel_size=parameters['second_kernel_size'])
+
+### Run only Results
 else:
     print("Processing All Results...")
+
+    output_folder = 'processed_results'
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
 
     i = 0
     for file_path in files_to_process:
@@ -68,6 +110,7 @@ else:
         base_img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
         if base_img is None:
             continue
+        print(f"     |{filename}")
 
         stats, segmentation, coloring = getMeResults(base_img, parameters)
 
@@ -75,7 +118,6 @@ else:
         all_stats.append(stats)
 
         cv2.imwrite(os.path.join(output_folder, f"{name_only}_seg.png"), segmentation)
-
         cv2.imwrite(os.path.join(output_folder, f"{name_only}_color.png"), coloring)
         print("Done.")
         i += 1
