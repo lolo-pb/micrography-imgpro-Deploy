@@ -77,9 +77,25 @@ if args.fibers or args.flashes or args.pores:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
 
+        i = 0
+        for file_path in files_to_process:
+            print(f"Processing [{i+1}] ...")
+            filename = os.path.basename(file_path)
+            name_only = os.path.splitext(filename)[0]
+    
+            base_img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+            if base_img is None:
+                continue
+            print(f"            |{filename}")
+            
+            mask_flashes = gmfl.getMeFlashes(base_img,cont_mult=parameters['cont_mult'])
+     
+            cv2.imwrite(os.path.join(output_folder, f"{name_only}_flash.png"), mask_flashes)
+            print("Done.")
+            i += 1
+    
+        print(f"Processing complete! Results saved in '{output_folder}'.")
 
-        # run getmeflashe
-        flashes_mask = gmfl.getMeFlashes(base_img,cont_mult=parameters['cont_mult'])
 
 ### Run only Pores 
     if args.pores:
@@ -89,8 +105,24 @@ if args.fibers or args.flashes or args.pores:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
 
-        # run getme pores
-        pores_mask, undefined_mask = gmp.getMetPores(base_img,first_kernel_size=parameters['first_kernel_size'],second_kernel_size=parameters['second_kernel_size'])
+        i = 0
+        for file_path in files_to_process:
+            print(f"Processing [{i+1}] ...")
+            filename = os.path.basename(file_path)
+            name_only = os.path.splitext(filename)[0]
+    
+            base_img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+            if base_img is None:
+                continue
+            print(f"            |{filename}")
+            
+            mask_bubbles, undefined_region_mask = gmp.getMetPores(base_img,first_kernel_size=parameters['first_kernel_size'],second_kernel_size=parameters['second_kernel_size'])
+     
+            cv2.imwrite(os.path.join(output_folder, f"{name_only}_pore.png"), mask_bubbles)
+            print("Done.")
+            i += 1
+    
+        print(f"Processing complete! Results saved in '{output_folder}'.")
 
 ### Run only Results
 else:
