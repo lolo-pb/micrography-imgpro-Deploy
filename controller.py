@@ -8,32 +8,21 @@ import getmepores as gmp
 import getmeflashes as gmfl
 import getmefibers as gmf
 
-def run_analysis(fibers=False, flashes=False, pores=False):
-
-    ## In/Out
-    input_folder = 'preprodata'
-
-    image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.tif']
-    files_to_process = []
-    for ext in image_extensions:
-        files_to_process.extend(glob.glob(os.path.join(input_folder, ext)))
-    print(f"Found {len(files_to_process)} images. Starting processing...")
+def run_analysis(fibers=False, flashes=False, pores=False,
+                 files_to_process = [],
+                 parameters = {
+                    'first_kernel_size': (5,5),
+                    'second_kernel_size': (3,3),
+                    'contours_mult': 2.5,
+                    'bh_ks': (7,7),
+                    'bhm_iter': 4,
+                    'bhm_mult': 60,
+                    'cont_mult': 2.5,
+                    'ws_ths_factor': 0.025,
+                    'ws_gl_vecinity': 15,
+                }):
 
     all_stats = []
-
-
-    ## Filetr parameters, TODO : these are hardoded / they might not nees to be
-    parameters = {
-        'first_kernel_size': (5,5),
-        'second_kernel_size': (3,3),
-        'contours_mult': 2.5,
-        'bh_ks': (7,7),
-        'bhm_iter': 4,
-        'bhm_mult': 60,
-        'cont_mult': 2.5,
-        'ws_ths_factor': 0.025,
-        'ws_gl_vecinity': 15,
-    }
 
     if fibers or flashes or pores:
     ### Run only Fibers 
@@ -151,17 +140,30 @@ def ensure_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+def extract_input_folder(input_folder = 'preprodata'):
+    files_to_process = []
 
+    image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.tif']
+    for ext in image_extensions:
+        files_to_process.extend(glob.glob(os.path.join(input_folder, ext)))
+    print(f"Found {len(files_to_process)} images.")
+
+    return files_to_process
+    
+## Main Function
 if __name__ == "__main__":
+
+    # interpretation of flags and passing them as arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--fibers", action="store_true")
     parser.add_argument("-fl", "--flashes", action="store_true")
     parser.add_argument("-p", "--pores", action="store_true")
     args = parser.parse_args()
 
-    # interpretation of flags and passing them as arguments
+
     run_analysis(
         fibers=args.fibers, 
         flashes=args.flashes, 
-        pores=args.pores
+        pores=args.pores,
+        files_to_process = extract_input_folder(),
     )
