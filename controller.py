@@ -1,4 +1,5 @@
 import cv2
+cv2.setUseOptimized(True)
 import os
 import glob
 import argparse
@@ -159,6 +160,9 @@ if __name__ == "__main__":
     parser.add_argument("-fl", "--flashes", action="store_true")
     parser.add_argument("-p", "--pores", action="store_true")
     args = parser.parse_args()
+
+    print("Optimizations?:")
+    print(cv2.useOptimized())
 
 
     run_analysis(

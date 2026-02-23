@@ -10,6 +10,7 @@ import glob
 from typing import Dict, Any, Tuple, Optional
 
 import cv2
+cv2.setUseOptimized(True)
 import numpy as np
 import streamlit as st
 
