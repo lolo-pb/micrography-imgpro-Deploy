@@ -40,6 +40,7 @@ def getMeFibers(base_img,
     # Segementación de test_3 para separar la mayor cantidad de fibras
     thresh_1 = np.zeros(np.shape(test_3),dtype=np.uint8)
     thresh_1[test_3 > np.mean(list_ts_test3[2:])] = 255
+    #thresh_1[test_3 > np.mean(list_ts_test3[2])] = 255
     test_4 = test_3.copy()
     test_4[~(thresh_1 == 255)] = 0
     test_4[test_4 > 0] = 255
