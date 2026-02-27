@@ -60,17 +60,22 @@ def getMeResults(base_img, parameters = {
         'sumcheck': (total_pores + total_fibers + total_resin + total_undefined) / total_pixels * 100
     }
 
-    # Imagen resultante ilustrativa
-    coloring = cv2.cvtColor(base_img, cv2.COLOR_GRAY2RGB)
-    
-    # 1. Poros
-    coloring[pores_mask != 0] = coloring[pores_mask != 0]*[10, 0, 0]
-    # 2. Fibras 
-    coloring[fibers_mask_complete != 0] = coloring[fibers_mask_complete != 0]*[1, 1, 0]
-    # 3. Resina
-    coloring[resin_mask != 0] = coloring[resin_mask != 0]*[0, 1, 0]
-    # 4. Indefinidos
-    coloring[undefined_mask_complete != 0] = coloring[undefined_mask_complete != 0]*[0, 1, 1]
+    # 1. Convert grayscale base to BGR (OpenCV standard)
+    coloring = cv2.cvtColor(base_img, cv2.COLOR_GRAY2BGR)
+
+    # 2. Poros -> Pure RED
+    coloring[pores_mask != 0] = [0, 0, 255] 
+
+    # 3. Fibras -> Pure YELLOW
+    coloring[fibers_mask_complete != 0] = [0, 255, 255]
+
+    # 4. Resina -> Pure GREEN
+    coloring[resin_mask != 0] = [0, 255, 0]
+
+    # 5. Indefinidos -> CYAN
+    coloring[undefined_mask_complete != 0] = [0, 255, 255]
+    ## 5. Indefinidos -> BLACK
+    #coloring[undefined_mask_complete != 0] = [0, 0, 0]
 
     # Imagen segmentada
     segmentation = np.zeros(np.shape(base_img), dtype=np.uint8)
