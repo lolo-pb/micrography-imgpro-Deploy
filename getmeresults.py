@@ -63,16 +63,16 @@ def getMeResults(base_img, parameters = {
     # 1. Convert grayscale base to BGR (OpenCV standard)
     coloring = cv2.cvtColor(base_img, cv2.COLOR_GRAY2BGR)
 
-    # 2. Poros -> Pure RED
-    coloring[pores_mask != 0] = [0, 0, 255] 
+    # 2. Poros -> Pure BLUE
+    coloring[pores_mask != 0] = [255, 0, 0] 
 
-    # 3. Fibras -> Pure YELLOW
-    coloring[fibers_mask_complete != 0] = [0, 255, 255]
+    # 3. Fibras -> Pure CYAN
+    coloring[fibers_mask_complete != 0] = [255, 255, 0]
 
     # 4. Resina -> Pure GREEN
     coloring[resin_mask != 0] = [0, 255, 0]
 
-    # 5. Indefinidos -> CYAN
+    # 5. Indefinidos -> Yellow
     coloring[undefined_mask_complete != 0] = [0, 255, 255]
     ## 5. Indefinidos -> BLACK
     #coloring[undefined_mask_complete != 0] = [0, 0, 0]
