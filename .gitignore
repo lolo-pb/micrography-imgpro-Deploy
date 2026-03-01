@@ -175,7 +175,6 @@ cython_debug/
 
 #folders
 ps-edits/
-preprodata/
 procimgs/
 rawdata/
 models/

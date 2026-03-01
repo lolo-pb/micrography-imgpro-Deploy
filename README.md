@@ -29,3 +29,10 @@ python .\controller.py -f -p
 this will run both fibers and pores
 
 running without flags will do getMeResults and output the colored images to a folder
+
+
+# Dependencies
+
+``` 
+pip install streamlit opencv-python numpy scikit-image
+``` 

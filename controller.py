@@ -21,6 +21,8 @@ def run_analysis(fibers=False, flashes=False, pores=False,
                     'cont_mult': 2.5,
                     'ws_ths_factor': 0.025,
                     'ws_gl_vecinity': 15,
+                    'otsu_classes': 5,
+                    'otsu_range': (0, 4),
                 }):
 
     all_stats = []
