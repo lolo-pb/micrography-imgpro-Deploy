@@ -14,7 +14,9 @@ def getMeResults(base_img, parameters = {
     'bhm_mult': 60,
     'cont_mult': 2.5,
     'ws_ths_factor': 0.025,
-    'ws_gl_vecinity': 15,
+    'ws_gl_vecinity': 15,    
+    'otsu_classes': 5,
+    'otsu_range': (2, None)
 }):
     
     pores_mask, undefined_mask = gmp.getMetPores(base_img,
@@ -28,7 +30,10 @@ def getMeResults(base_img, parameters = {
                                         bhm_mult=parameters['bhm_mult'],
                                         cont_mult=parameters['cont_mult'],
                                         ws_ths_factor=parameters['ws_ths_factor'],
-                                        ws_gl_vecinity=parameters['ws_gl_vecinity'])
+                                        ws_gl_vecinity=parameters['ws_gl_vecinity'],
+                                        otsu_classes=parameters['otsu_classes'],
+                                        otsu_range=parameters['otsu_range']
+                                        )
 
     # Se completa la máscara de objetos indefinidos
     undefined_mask_complete = np.zeros(np.shape(base_img), dtype=np.uint8)

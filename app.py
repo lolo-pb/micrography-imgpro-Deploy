@@ -20,7 +20,6 @@ import getmepores as gmp
 import getmeflashes as gmfl
 import getmefibers as gmf
 
-
 # ---------- Helpers ----------
 def list_images_in_folder(folder: str) -> list[str]:
     exts = ("*.jpg", "*.jpeg", "*.png", "*.tif", "*.tiff", "*.bmp")
@@ -90,6 +89,10 @@ def build_parameters_ui() -> Dict[str, Any]:
         cont_mult = st.slider("cont_mult", 0.1, 10.0, 2.5, 0.1)
 
     with colB:
+        st.markdown("**Fibers (Otsu & Watershed)**")
+        o_classes = st.slider("Multi-Otsu Classes", 2, 10, 5)
+
+        o_range = st.slider("Class Range", 0, o_classes - 1, (0, o_classes - 1))
         st.markdown("**Fibers (blackhat + watershed)**")
         bh = st.slider("bh_ks (odd)", 1, 61, 7, 2)
         bh_ks = (as_odd(int(bh)), as_odd(int(bh)))
@@ -102,6 +105,7 @@ def build_parameters_ui() -> Dict[str, Any]:
         ws_gl_vecinity = st.slider("ws_gl_vecinity", 1, 200, 15, 1)
 
     # keep both keys your code expects; controller.py uses both contours_mult and cont_mult in defaults
+
     params = {
         "first_kernel_size": first_kernel_size,
         "second_kernel_size": second_kernel_size,
@@ -112,6 +116,8 @@ def build_parameters_ui() -> Dict[str, Any]:
         "cont_mult": float(cont_mult_fib),  # used by fibers + flashes in your modules
         "ws_ths_factor": float(ws_ths_factor),
         "ws_gl_vecinity": int(ws_gl_vecinity),
+        "otsu_classes": int(o_classes),
+        "otsu_range": o_range,
     }
     return params
 
@@ -133,6 +139,7 @@ def run_pipeline(
         outputs["coloring"] = coloring
 
     elif mode == "Fibers":
+        
         binary_mask, contours_filtered_img, list_masks = gmf.getMeFibers(
             base_img_gray,
             bh_ks=parameters["bh_ks"],
@@ -141,6 +148,8 @@ def run_pipeline(
             cont_mult=parameters["cont_mult"],
             ws_ths_factor=parameters["ws_ths_factor"],
             ws_gl_vecinity=parameters["ws_gl_vecinity"],
+            otsu_classes=parameters["otsu_classes"],
+            otsu_range=parameters["otsu_range"], 
         )
         outputs["binary_mask"] = binary_mask
         outputs["contours_filtered_img"] = contours_filtered_img
@@ -164,6 +173,7 @@ def run_pipeline(
 
     else:
         raise ValueError(f"Unknown mode: {mode}")
+    
 
     return outputs
 
