@@ -140,6 +140,7 @@ def build_parameters_ui() -> Dict[str, Any]:
             )
             ws_gl_vecinity = st.slider("ws_gl_vecinity", 1, 200, 15, 1)
 
+    # TODO : i think these can be deleted
     # If the expander is collapsed on first render, these vars won't exist yet.
     # So give defaults if they weren't set (Streamlit reruns will populate them).
     first_kernel_size = locals().get("first_kernel_size", (5, 5))
@@ -447,3 +448,11 @@ with right:
             st.image(normalize_mask_for_display(outputs["undefined_region_mask"]), use_container_width=True)
 
 st.caption("Tip: tweak parameters on the left and hit **Run processing** again to compare quickly.")
+
+
+
+
+# TODO :
+# la seleccion de archivos es fea
+# preferiria que el progrma te las deescargue tipo fotos, no directamente a la carpeta
+# esta medio lenteja
