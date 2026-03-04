@@ -20,6 +20,9 @@ import getmepores as gmp
 import getmeflashes as gmfl
 import getmefibers as gmf
 
+from common import getSegmentationFigure, getColoringFigure
+import matplotlib.pyplot as plt
+
 # ---------- Helpers ----------
 def list_images_in_folder(folder: str) -> list[str]:
     exts = ("*.jpg", "*.jpeg", "*.png", "*.tif", "*.tiff", "*.bmp")
@@ -77,7 +80,7 @@ def build_parameters_ui() -> Dict[str, Any]:
     st.subheader("Parameters")
 
     # --- Top: Otsu controls first ---
-    st.markdown("**Fibers (Otsu & Watershed)**")
+    st.markdown("**Fibers (Otsu)**")
     o_classes = st.slider("Multi-Otsu Classes", 2, 10, 5)
     o_range = st.slider("Class Range", 0, o_classes - 1, (0, o_classes - 1))
 
@@ -150,6 +153,11 @@ def run_pipeline(
 
     if mode == "All Results":
         stats, segmentation, coloring = getMeResults(base_img_gray, parameters)
+        outputs["segmentation-r"] = segmentation
+        outputs["stats-r"] = stats
+
+    elif mode == "All Data":
+        stats, segmentation, coloring = getMeResults(base_img_gray, parameters)
         outputs["stats"] = stats
         outputs["segmentation"] = segmentation
         outputs["coloring"] = coloring
@@ -219,7 +227,7 @@ with st.sidebar:
 
     st.divider()
     st.header("What to run")
-    mode = st.radio("Mode", ["All Results", "Fibers", "Flashes", "Pores"], index=0)
+    mode = st.radio("Mode", ["All Results", "All Data", "Fibers", "Flashes", "Pores"], index=0)
 
     st.divider()
     params = build_parameters_ui()
@@ -278,6 +286,19 @@ with right:
         st.info("Hit **Run processing** to render the result.")
     else:
         st.caption(f"Last run: {last_mode}")
+
+        if "segmentation-r" in outputs:
+            st.markdown("**Segmentation**")
+
+            fig, ax = plt.subplots(figsize=(14,8))
+            getSegmentationFigure(
+                outputs["segmentation-r"],
+                outputs["stats-r"],
+                "out",
+                ax=ax,
+
+            )
+            st.pyplot(fig)
 
         if "stats" in outputs:
             st.markdown("**Stats**")
