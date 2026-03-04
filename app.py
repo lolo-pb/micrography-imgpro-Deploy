@@ -24,6 +24,34 @@ from common import getSegmentationFigure, getColoringFigure
 import matplotlib.pyplot as plt
 
 # ---------- Helpers ----------
+
+def ensure_dir(path: str) -> None:
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+def name_only_from_source(source: str) -> str:
+    # source can be a path or just a filename
+    base = os.path.basename(source) if source else "image"
+    return os.path.splitext(base)[0] or "image"
+
+def to_uint8(img: np.ndarray) -> np.ndarray:
+    """Make cv2.imwrite happy for common mask formats (bool/0-1 float/etc)."""
+    if img is None:
+        return img
+    if img.dtype == np.bool_:
+        return (img.astype(np.uint8) * 255)
+    if img.dtype == np.uint8:
+        return img
+    if np.issubdtype(img.dtype, np.floating):
+        mx = float(np.nanmax(img)) if img.size else 0.0
+        if mx <= 1.0:
+            return (np.clip(img, 0.0, 1.0) * 255.0).astype(np.uint8)
+        return np.clip(img, 0.0, 255.0).astype(np.uint8)
+    if np.issubdtype(img.dtype, np.integer):
+        return np.clip(img, 0, 255).astype(np.uint8)
+    # fallback
+    return img.astype(np.uint8, copy=False)
+
 def list_images_in_folder(folder: str) -> list[str]:
     exts = ("*.jpg", "*.jpeg", "*.png", "*.tif", "*.tiff", "*.bmp")
     files = []
@@ -239,14 +267,17 @@ with st.sidebar:
 # Load image
 base_gray: Optional[np.ndarray] = None
 load_err: Optional[str] = None
+img_source_label: Optional[str] = None
 
 try:
     if source == "Upload":
         if uploaded is not None:
             base_gray = decode_uploaded_gray(uploaded)
+            img_source_label = uploaded.name
     else:
         if picked_path is not None:
             base_gray = imread_gray(picked_path)
+            img_source_label = picked_path
 except Exception as e:
     load_err = str(e)
 
@@ -257,6 +288,58 @@ if base_gray is None:
     st.info("Pick or upload an image to start.")
     st.stop()
 
+# Export
+name_only = name_only_from_source(img_source_label or "image")
+st.session_state["last_name_only"] = name_only
+
+def export_last_outputs(outputs: Dict[str, Any], name_only: str) -> Tuple[list[str], Optional[str]]:
+    """
+    Save current outputs to disk using controller.py naming.
+    Returns (saved_paths, error_message).
+    """
+    saved: list[str] = []
+    try:
+        # Match controller.py folders + names
+        if "segmentation" in outputs or "coloring" in outputs:
+            out_dir = "processed_results"
+            ensure_dir(out_dir)
+
+            if "segmentation" in outputs:
+                p = os.path.join(out_dir, f"{name_only}_seg.png")
+                cv2.imwrite(p, to_uint8(outputs["segmentation"]))
+                saved.append(p)
+
+            if "coloring" in outputs:
+                p = os.path.join(out_dir, f"{name_only}_color.png")
+                cv2.imwrite(p, to_uint8(outputs["coloring"]))
+                saved.append(p)
+
+        if "binary_mask" in outputs:
+            out_dir = "processed_fibers"
+            ensure_dir(out_dir)
+            p = os.path.join(out_dir, f"{name_only}_fib.png")
+            cv2.imwrite(p, to_uint8(outputs["binary_mask"]))
+            saved.append(p)
+
+        if "mask_flashes" in outputs:
+            out_dir = "processed_flashes"
+            ensure_dir(out_dir)
+            p = os.path.join(out_dir, f"{name_only}_flash.png")
+            cv2.imwrite(p, to_uint8(outputs["mask_flashes"]))
+            saved.append(p)
+
+        if "mask_bubbles" in outputs:
+            out_dir = "processed_pores"
+            ensure_dir(out_dir)
+            p = os.path.join(out_dir, f"{name_only}_pore.png")
+            cv2.imwrite(p, to_uint8(outputs["mask_bubbles"]))
+            saved.append(p)
+
+        # Note: controller.py doesn't export stats or undefined_region_mask, so we keep parity.
+        return saved, None
+    except Exception as e:
+        return saved, str(e)
+
 # Display original
 left, right = st.columns([1, 1])
 
@@ -264,6 +347,32 @@ with left:
     st.subheader("Original")
     st.image(to_rgb_for_display(base_gray), use_container_width=True)
     st.caption(f"Shape: {base_gray.shape} | dtype: {base_gray.dtype}")
+
+    st.divider()
+
+    export_btn = st.button(
+        "Export outputs",
+        type="secondary",
+        use_container_width=True
+    )
+
+    if export_btn:
+        outputs = st.session_state.get("last_outputs", None)
+
+        if outputs is None:
+            st.warning("Run the pipeline first.")
+        else:
+            name_only = st.session_state.get("last_name_only", "image")
+            saved_paths, err = export_last_outputs(outputs, name_only)
+
+            if err:
+                st.error(f"Export failed: {err}")
+            elif not saved_paths:
+                st.warning("Nothing to export.")
+            else:
+                st.success("Exported:")
+                for p in saved_paths:
+                    st.write(p)
 
 # Run + display
 if run_btn:
@@ -278,6 +387,7 @@ if run_btn:
 
 outputs = st.session_state.get("last_outputs", None)
 last_mode = st.session_state.get("last_mode", None)
+last_name_only = st.session_state.get("last_name_only", "image")
 
 with right:
     st.subheader("Output")
