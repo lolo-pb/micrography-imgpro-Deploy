@@ -25,6 +25,15 @@ import matplotlib.pyplot as plt
 
 # ---------- Helpers ----------
 
+def png_bytes(img: np.ndarray) -> bytes:
+    """Encode an image/mask to PNG bytes for st.download_button."""
+    if img is None:
+        return b""
+    ok, buf = cv2.imencode(".png", to_uint8(img))
+    if not ok:
+        raise ValueError("cv2.imencode failed")
+    return buf.tobytes()
+
 def ensure_dir(path: str) -> None:
     if not os.path.exists(path):
         os.makedirs(path)
@@ -293,6 +302,19 @@ if base_gray is None:
 name_only = name_only_from_source(img_source_label or "image")
 st.session_state["last_name_only"] = name_only
 
+
+# Run + display
+if run_btn:
+    try:
+        outputs = run_pipeline(base_gray, mode, params)
+        st.session_state["last_outputs"] = outputs
+        st.session_state["last_mode"] = mode
+        st.session_state["last_params"] = params
+        st.success("Done.")
+    except Exception as e:
+        st.exception(e)
+
+
 def export_last_outputs(outputs: Dict[str, Any], name_only: str) -> Tuple[list[str], Optional[str]]:
     """
     Save current outputs to disk using controller.py naming.
@@ -351,40 +373,40 @@ with left:
 
     st.divider()
 
-    export_btn = st.button(
-        "Export outputs",
-        type="secondary",
-        use_container_width=True
-    )
+    outputs = st.session_state.get("last_outputs", None)
+    name_only = st.session_state.get("last_name_only", "image")
 
-    if export_btn:
-        outputs = st.session_state.get("last_outputs", None)
+    if outputs is None:
+        st.info("Run the pipeline first to enable downloads.")
+    else:
+        # build stable bytes once per rerun (streamlit-friendly)
+        items = []
 
-        if outputs is None:
-            st.warning("Run the pipeline first.")
+        #if "segmentation-r" in outputs:
+        #    #hay q exportar el dibujo loco como jpeg
+        if "segmentation" in outputs:
+            items.append((f"{name_only}_seg.png", png_bytes(outputs["segmentation"])))
+        if "coloring" in outputs:
+            items.append((f"{name_only}_color.png", png_bytes(outputs["coloring"])))
+        if "binary_mask" in outputs:
+            items.append((f"{name_only}_fib.png", png_bytes(outputs["binary_mask"])))
+        if "mask_flashes" in outputs:
+            items.append((f"{name_only}_flash.png", png_bytes(outputs["mask_flashes"])))
+        if "mask_bubbles" in outputs:
+            items.append((f"{name_only}_pore.png", png_bytes(outputs["mask_bubbles"])))
+
+        if not items:
+            st.warning("No exportable images in the last run.")
         else:
-            name_only = st.session_state.get("last_name_only", "image")
-            saved_paths, err = export_last_outputs(outputs, name_only)
+            for fname, data in items:
+                st.download_button(
+                    label=f"Download {fname}",
+                    data=data,
+                    file_name=fname,
+                    mime="image/png",
+                    use_container_width=True,
+                )
 
-            if err:
-                st.error(f"Export failed: {err}")
-            elif not saved_paths:
-                st.warning("Nothing to export.")
-            else:
-                st.success("Exported:")
-                for p in saved_paths:
-                    st.write(p)
-
-# Run + display
-if run_btn:
-    try:
-        outputs = run_pipeline(base_gray, mode, params)
-        st.session_state["last_outputs"] = outputs
-        st.session_state["last_mode"] = mode
-        st.session_state["last_params"] = params
-        st.success("Done.")
-    except Exception as e:
-        st.exception(e)
 
 outputs = st.session_state.get("last_outputs", None)
 last_mode = st.session_state.get("last_mode", None)
