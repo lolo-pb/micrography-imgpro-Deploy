@@ -1,6 +1,7 @@
 import cv2
 import skimage as ski
 import numpy as np
+import matplotlib.pyplot as plt
 
 def getBlackHatMask(base_img, kernel_size=(5,5)):
     # Crear kernel para operación morfológica
@@ -134,3 +135,32 @@ def applyWatershed(base_img, mask, threshold_factor = 0.025, gl_vecinity=15):
     binary_mask[regions_result > 1] = 255  # Set foreground regions to 255 (white)
 
     return regions_result, binary_mask
+
+# Funciones que vamos a usar
+
+def getSegmentationFigure(segmentation, percentages, filename, ax=None):
+    if ax is None:
+        fig = plt.figure(figsize=(14, 8))
+        ax = fig.add_subplot(111)
+
+    im = ax.imshow(segmentation)
+    ax.axis('off')
+
+    # Agregar la barra de color con etiquetas personalizadas
+    cbar = fig.colorbar(im, ax=ax, orientation="vertical", shrink=0.4)
+    cbar.set_ticks([20,60,150,250])
+    cbar.set_ticklabels([
+        f"Indefinido - {percentages['undefined']:.2f}%",
+        f"Poros - {percentages['pores']:.2f}%",
+        f"Resina - {percentages['resin']:.2f}%",
+        f"Fibra - {percentages['fibers']:.2f}%"
+        ])
+    ax.set_title(f"Segmentación - {filename}")
+    plt.tight_layout()
+
+def getColoringFigure(coloring, filename):
+    fig = plt.figure(figsize=(14, 8))
+    plt.imshow(coloring,vmin=0,vmax=255)
+    plt.axis('off')
+    plt.title(f"Coloración - {filename}")
+    plt.tight_layout()

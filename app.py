@@ -14,7 +14,7 @@ cv2.setUseOptimized(True)
 import numpy as np
 import streamlit as st
 
-# Your existing pipeline modules (must be importable from this folder)
+# Existing pipeline modules 
 from getmeresults import getMeResults
 import getmepores as gmp
 import getmeflashes as gmfl
@@ -76,48 +76,64 @@ def as_odd(n: int) -> int:
 def build_parameters_ui() -> Dict[str, Any]:
     st.subheader("Parameters")
 
-    colA, colB = st.columns(2)
+    # --- Top: Otsu controls first ---
+    st.markdown("**Fibers (Otsu & Watershed)**")
+    o_classes = st.slider("Multi-Otsu Classes", 2, 10, 5)
+    o_range = st.slider("Class Range", 0, o_classes - 1, (0, o_classes - 1))
 
-    with colA:
-        st.markdown("**Pores (kernels)**")
-        fk = st.slider("first_kernel_size (odd)", 1, 31, 5, 2)
-        sk = st.slider("second_kernel_size (odd)", 1, 31, 3, 2)
-        first_kernel_size = (as_odd(int(fk)), as_odd(int(fk)))
-        second_kernel_size = (as_odd(int(sk)), as_odd(int(sk)))
+    # --- Collapsible: everything else ---
+    with st.expander("More parameters", expanded=False):
+        colA, colB = st.columns(2)
 
-        st.markdown("**Flashes**")
-        cont_mult = st.slider("cont_mult", 0.1, 10.0, 2.5, 0.1)
+        with colA:
+            st.markdown("**Pores (kernels)**")
+            fk = st.slider("first_kernel_size (odd)", 1, 31, 5, 2)
+            sk = st.slider("second_kernel_size (odd)", 1, 31, 3, 2)
+            first_kernel_size = (as_odd(int(fk)), as_odd(int(fk)))
+            second_kernel_size = (as_odd(int(sk)), as_odd(int(sk)))
 
-    with colB:
-        st.markdown("**Fibers (Otsu & Watershed)**")
-        o_classes = st.slider("Multi-Otsu Classes", 2, 10, 5)
+            st.markdown("**Flashes**")
+            cont_mult = st.slider("cont_mult", 0.1, 10.0, 2.5, 0.1)
 
-        o_range = st.slider("Class Range", 0, o_classes - 1, (0, o_classes - 1))
-        st.markdown("**Fibers (blackhat + watershed)**")
-        bh = st.slider("bh_ks (odd)", 1, 61, 7, 2)
-        bh_ks = (as_odd(int(bh)), as_odd(int(bh)))
+        with colB:
+            st.markdown("**Fibers (blackhat + watershed)**")
+            bh = st.slider("bh_ks (odd)", 1, 61, 7, 2)
+            bh_ks = (as_odd(int(bh)), as_odd(int(bh)))
 
-        bhm_iter = st.slider("bhm_iter", 1, 20, 4, 1)
-        bhm_mult = st.slider("bhm_mult", 1, 300, 60, 1)
-        cont_mult_fib = st.slider("cont_mult (fibers)", 0.1, 10.0, 2.5, 0.1)
+            bhm_iter = st.slider("bhm_iter", 1, 20, 4, 1)
+            bhm_mult = st.slider("bhm_mult", 1, 300, 60, 1)
+            cont_mult_fib = st.slider("cont_mult (fibers)", 0.1, 10.0, 2.5, 0.1)
 
-        ws_ths_factor = st.slider("ws_ths_factor", 0.0001, 0.2, 0.025, 0.0005, format="%.4f")
-        ws_gl_vecinity = st.slider("ws_gl_vecinity", 1, 200, 15, 1)
+            ws_ths_factor = st.slider(
+                "ws_ths_factor", 0.0001, 0.2, 0.025, 0.0005, format="%.4f"
+            )
+            ws_gl_vecinity = st.slider("ws_gl_vecinity", 1, 200, 15, 1)
 
-    # keep both keys your code expects; controller.py uses both contours_mult and cont_mult in defaults
+    # If the expander is collapsed on first render, these vars won't exist yet.
+    # So give defaults if they weren't set (Streamlit reruns will populate them).
+    first_kernel_size = locals().get("first_kernel_size", (5, 5))
+    second_kernel_size = locals().get("second_kernel_size", (3, 3))
+    cont_mult = float(locals().get("cont_mult", 2.5))
+    bh_ks = locals().get("bh_ks", (7, 7))
+    bhm_iter = int(locals().get("bhm_iter", 4))
+    bhm_mult = int(locals().get("bhm_mult", 60))
+    cont_mult_fib = float(locals().get("cont_mult_fib", 2.5))
+    ws_ths_factor = float(locals().get("ws_ths_factor", 0.025))
+    ws_gl_vecinity = int(locals().get("ws_gl_vecinity", 15))
 
     params = {
-        "first_kernel_size": first_kernel_size,
-        "second_kernel_size": second_kernel_size,
-        "contours_mult": float(cont_mult),
-        "bh_ks": bh_ks,
-        "bhm_iter": int(bhm_iter),
-        "bhm_mult": int(bhm_mult),
-        "cont_mult": float(cont_mult_fib),  # used by fibers + flashes in your modules
-        "ws_ths_factor": float(ws_ths_factor),
-        "ws_gl_vecinity": int(ws_gl_vecinity),
         "otsu_classes": int(o_classes),
         "otsu_range": o_range,
+
+        "first_kernel_size": first_kernel_size,
+        "second_kernel_size": second_kernel_size,
+        "contours_mult": cont_mult,          # flashes path in your original UI
+        "bh_ks": bh_ks,
+        "bhm_iter": bhm_iter,
+        "bhm_mult": bhm_mult,
+        "cont_mult": cont_mult_fib,          # fibers + flashes in your modules
+        "ws_ths_factor": ws_ths_factor,
+        "ws_gl_vecinity": ws_gl_vecinity,
     }
     return params
 
