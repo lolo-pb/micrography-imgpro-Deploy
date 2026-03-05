@@ -376,7 +376,7 @@ left, right = st.columns([1, 1])
 
 with left:
     st.subheader("Original")
-    st.image(to_rgb_for_display(base_gray), use_container_width=True)
+    st.image(to_rgb_for_display(base_gray), width="stretch")
     st.caption(f"Shape: {base_gray.shape} | dtype: {base_gray.dtype}")
 
     st.divider()
@@ -412,7 +412,7 @@ with left:
                     data=data,
                     file_name=fname,
                     mime="image/png",
-                    use_container_width=True,
+                    width="stretch",
                 )
 
 
@@ -430,7 +430,7 @@ with right:
 
         if "results" in outputs:
             st.markdown("**Results**")
-            st.image(outputs["results"], use_container_width=True)
+            st.image(outputs["results"], width="stretch")
 
         if "stats" in outputs:
             st.markdown("**Stats**")
@@ -439,34 +439,34 @@ with right:
 
         if "segmentation" in outputs:
             st.markdown("**Segmentation**")
-            st.image(to_rgb_for_display(outputs["segmentation"]), use_container_width=True)
+            st.image(to_rgb_for_display(outputs["segmentation"]), width="stretch")
 
         if "coloring" in outputs:
             st.markdown("**Coloring**")
-            st.image(to_rgb_for_display(outputs["coloring"]), use_container_width=True)
+            st.image(to_rgb_for_display(outputs["coloring"]), width="stretch")
 
         if "binary_mask" in outputs:
             st.markdown("**Fibers mask**")
-            st.image(normalize_mask_for_display(outputs["binary_mask"]), use_container_width=True)
+            st.image(normalize_mask_for_display(outputs["binary_mask"]), width="stretch")
 
         if "contours_filtered_img" in outputs:
             st.markdown("**Contours filtered**")
-            st.image(to_rgb_for_display(outputs["contours_filtered_img"]), use_container_width=True)
+            st.image(to_rgb_for_display(outputs["contours_filtered_img"]), width="stretch")
 
         if "list_masks_count" in outputs:
             st.caption(f"Fiber sub-masks: {outputs['list_masks_count']}")
 
         if "mask_flashes" in outputs:
             st.markdown("**Flashes mask**")
-            st.image(normalize_mask_for_display(outputs["mask_flashes"]), use_container_width=True)
+            st.image(normalize_mask_for_display(outputs["mask_flashes"]), width="stretch")
 
         if "mask_bubbles" in outputs:
             st.markdown("**Pores mask (bubbles)**")
-            st.image(normalize_mask_for_display(outputs["mask_bubbles"]), use_container_width=True)
+            st.image(normalize_mask_for_display(outputs["mask_bubbles"]), width="stretch")
 
         if "undefined_region_mask" in outputs:
             st.markdown("**Undefined region mask**")
-            st.image(normalize_mask_for_display(outputs["undefined_region_mask"]), use_container_width=True)
+            st.image(normalize_mask_for_display(outputs["undefined_region_mask"]), width="stretch")
 
 st.caption("Tip: tweak parameters on the left and hit **Run processing** again to compare quickly.")
 
