@@ -474,6 +474,5 @@ st.caption("Tip: tweak parameters on the left and hit **Run processing** again t
 
 
 # TODO :
-# la seleccion de archivos es fea
-# preferiria que el progrma te las deescargue tipo fotos, no directamente a la carpeta
 # esta medio lenteja
+# aplicar a toda una carpeta
