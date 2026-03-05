@@ -25,6 +25,14 @@ import matplotlib.pyplot as plt
 
 # ---------- Helpers ----------
 
+def fig_to_img(fig):
+    fig.canvas.draw()
+    w, h = fig.canvas.get_width_height()
+    buf = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+    img = buf.reshape((h, w, 4))[:, :, :3]
+    plt.close(fig)
+    return img
+
 def png_bytes(img: np.ndarray) -> bytes:
     """Encode an image/mask to PNG bytes for st.download_button."""
     if img is None:
@@ -32,6 +40,17 @@ def png_bytes(img: np.ndarray) -> bytes:
     ok, buf = cv2.imencode(".png", to_uint8(img))
     if not ok:
         raise ValueError("cv2.imencode failed")
+    return buf.tobytes()
+
+def png_bytes_bgr(img: np.ndarray) -> bytes:
+    if img is None:
+        return b""
+
+    img = cv2.cvtColor(to_uint8(img), cv2.COLOR_RGB2BGR)
+    ok, buf = cv2.imencode(".png", img)
+    if not ok:
+        raise ValueError("cv2.imencode failed")
+
     return buf.tobytes()
 
 def ensure_dir(path: str) -> None:
@@ -191,8 +210,9 @@ def run_pipeline(
 
     if mode == "All Results":
         stats, segmentation, coloring = getMeResults(base_img_gray, parameters)
-        outputs["segmentation-r"] = segmentation
-        outputs["stats-r"] = stats
+        fig, ax = plt.subplots(figsize=(14,8))
+        getSegmentationFigure(segmentation,stats,"out",ax=ax,)
+        outputs["results"] = fig_to_img(fig)
 
     elif mode == "All Data":
         stats, segmentation, coloring = getMeResults(base_img_gray, parameters)
@@ -246,22 +266,12 @@ st.title("Image Processing Tuner")
 
 with st.sidebar:
     st.header("Input")
-    source = st.radio("Image source", ["Upload", "Pick from folder"], horizontal=False)
 
-    folder_default = "preprodata"
-    folder = st.text_input("Folder", folder_default, help="Used only when 'Pick from folder' is selected.")
 
     uploaded = None
     picked_path = None
 
-    if source == "Upload":
-        uploaded = st.file_uploader("Upload one image", type=["png", "jpg", "jpeg", "tif", "tiff", "bmp"])
-    else:
-        files = list_images_in_folder(folder)
-        if len(files) == 0:
-            st.warning(f"No images found in: {folder}")
-        else:
-            picked_path = st.selectbox("Select image", files)
+    uploaded = st.file_uploader("Upload one image", type=["png", "jpg", "jpeg", "tif", "tiff", "bmp"])
 
     st.divider()
     st.header("What to run")
@@ -280,14 +290,9 @@ load_err: Optional[str] = None
 img_source_label: Optional[str] = None
 
 try:
-    if source == "Upload":
         if uploaded is not None:
             base_gray = decode_uploaded_gray(uploaded)
             img_source_label = uploaded.name
-    else:
-        if picked_path is not None:
-            base_gray = imread_gray(picked_path)
-            img_source_label = picked_path
 except Exception as e:
     load_err = str(e)
 
@@ -358,6 +363,9 @@ def export_last_outputs(outputs: Dict[str, Any], name_only: str) -> Tuple[list[s
             cv2.imwrite(p, to_uint8(outputs["mask_bubbles"]))
             saved.append(p)
 
+        if "results" in outputs:
+            items.append((f"{name_only}_results.png", png_bytes(outputs["results"])))
+
         # Note: controller.py doesn't export stats or undefined_region_mask, so we keep parity.
         return saved, None
     except Exception as e:
@@ -382,8 +390,8 @@ with left:
         # build stable bytes once per rerun (streamlit-friendly)
         items = []
 
-        #if "segmentation-r" in outputs:
-        #    #hay q exportar el dibujo loco como jpeg
+        if "results" in outputs:
+            items.append((f"{name_only}_results.png", png_bytes_bgr(outputs["results"])))
         if "segmentation" in outputs:
             items.append((f"{name_only}_seg.png", png_bytes(outputs["segmentation"])))
         if "coloring" in outputs:
@@ -420,18 +428,9 @@ with right:
     else:
         st.caption(f"Last run: {last_mode}")
 
-        if "segmentation-r" in outputs:
-            st.markdown("**Segmentation**")
-
-            fig, ax = plt.subplots(figsize=(14,8))
-            getSegmentationFigure(
-                outputs["segmentation-r"],
-                outputs["stats-r"],
-                "out",
-                ax=ax,
-
-            )
-            st.pyplot(fig)
+        if "results" in outputs:
+            st.markdown("**Results**")
+            st.image(outputs["results"], use_container_width=True)
 
         if "stats" in outputs:
             st.markdown("**Stats**")
