@@ -14,13 +14,72 @@ cv2.setUseOptimized(True)
 import numpy as np
 import streamlit as st
 
-# Your existing pipeline modules (must be importable from this folder)
+# Existing pipeline modules 
 from getmeresults import getMeResults
 import getmepores as gmp
 import getmeflashes as gmfl
 import getmefibers as gmf
 
+from common import getSegmentationFigure, getColoringFigure
+import matplotlib.pyplot as plt
+
 # ---------- Helpers ----------
+
+def fig_to_img(fig):
+    fig.canvas.draw()
+    w, h = fig.canvas.get_width_height()
+    buf = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+    img = buf.reshape((h, w, 4))[:, :, :3]
+    plt.close(fig)
+    return img
+
+def png_bytes(img: np.ndarray) -> bytes:
+    """Encode an image/mask to PNG bytes for st.download_button."""
+    if img is None:
+        return b""
+    ok, buf = cv2.imencode(".png", to_uint8(img))
+    if not ok:
+        raise ValueError("cv2.imencode failed")
+    return buf.tobytes()
+
+def png_bytes_bgr(img: np.ndarray) -> bytes:
+    if img is None:
+        return b""
+
+    img = cv2.cvtColor(to_uint8(img), cv2.COLOR_RGB2BGR)
+    ok, buf = cv2.imencode(".png", img)
+    if not ok:
+        raise ValueError("cv2.imencode failed")
+
+    return buf.tobytes()
+
+def ensure_dir(path: str) -> None:
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+def name_only_from_source(source: str) -> str:
+    # source can be a path or just a filename
+    base = os.path.basename(source) if source else "image"
+    return os.path.splitext(base)[0] or "image"
+
+def to_uint8(img: np.ndarray) -> np.ndarray:
+    """Make cv2.imwrite happy for common mask formats (bool/0-1 float/etc)."""
+    if img is None:
+        return img
+    if img.dtype == np.bool_:
+        return (img.astype(np.uint8) * 255)
+    if img.dtype == np.uint8:
+        return img
+    if np.issubdtype(img.dtype, np.floating):
+        mx = float(np.nanmax(img)) if img.size else 0.0
+        if mx <= 1.0:
+            return (np.clip(img, 0.0, 1.0) * 255.0).astype(np.uint8)
+        return np.clip(img, 0.0, 255.0).astype(np.uint8)
+    if np.issubdtype(img.dtype, np.integer):
+        return np.clip(img, 0, 255).astype(np.uint8)
+    # fallback
+    return img.astype(np.uint8, copy=False)
+
 def list_images_in_folder(folder: str) -> list[str]:
     exts = ("*.jpg", "*.jpeg", "*.png", "*.tif", "*.tiff", "*.bmp")
     files = []
@@ -76,48 +135,65 @@ def as_odd(n: int) -> int:
 def build_parameters_ui() -> Dict[str, Any]:
     st.subheader("Parameters")
 
-    colA, colB = st.columns(2)
+    # --- Top: Otsu controls first ---
+    st.markdown("**Fibers (Otsu)**")
+    o_classes = st.slider("Multi-Otsu Classes", 2, 10, 5)
+    o_range = st.slider("Class Range", 0, o_classes - 1, (0, o_classes - 1))
 
-    with colA:
-        st.markdown("**Pores (kernels)**")
-        fk = st.slider("first_kernel_size (odd)", 1, 31, 5, 2)
-        sk = st.slider("second_kernel_size (odd)", 1, 31, 3, 2)
-        first_kernel_size = (as_odd(int(fk)), as_odd(int(fk)))
-        second_kernel_size = (as_odd(int(sk)), as_odd(int(sk)))
+    # --- Collapsible: everything else ---
+    with st.expander("More parameters", expanded=False):
+        colA, colB = st.columns(2)
 
-        st.markdown("**Flashes**")
-        cont_mult = st.slider("cont_mult", 0.1, 10.0, 2.5, 0.1)
+        with colA:
+            st.markdown("**Pores (kernels)**")
+            fk = st.slider("first_kernel_size (odd)", 1, 31, 5, 2)
+            sk = st.slider("second_kernel_size (odd)", 1, 31, 3, 2)
+            first_kernel_size = (as_odd(int(fk)), as_odd(int(fk)))
+            second_kernel_size = (as_odd(int(sk)), as_odd(int(sk)))
 
-    with colB:
-        st.markdown("**Fibers (Otsu & Watershed)**")
-        o_classes = st.slider("Multi-Otsu Classes", 2, 10, 5)
+            st.markdown("**Flashes**")
+            cont_mult = st.slider("cont_mult", 0.1, 10.0, 2.5, 0.1)
 
-        o_range = st.slider("Class Range", 0, o_classes - 1, (0, o_classes - 1))
-        st.markdown("**Fibers (blackhat + watershed)**")
-        bh = st.slider("bh_ks (odd)", 1, 61, 7, 2)
-        bh_ks = (as_odd(int(bh)), as_odd(int(bh)))
+        with colB:
+            st.markdown("**Fibers (blackhat + watershed)**")
+            bh = st.slider("bh_ks (odd)", 1, 61, 7, 2)
+            bh_ks = (as_odd(int(bh)), as_odd(int(bh)))
 
-        bhm_iter = st.slider("bhm_iter", 1, 20, 4, 1)
-        bhm_mult = st.slider("bhm_mult", 1, 300, 60, 1)
-        cont_mult_fib = st.slider("cont_mult (fibers)", 0.1, 10.0, 2.5, 0.1)
+            bhm_iter = st.slider("bhm_iter", 1, 20, 4, 1)
+            bhm_mult = st.slider("bhm_mult", 1, 300, 60, 1)
+            cont_mult_fib = st.slider("cont_mult (fibers)", 0.1, 10.0, 2.5, 0.1)
 
-        ws_ths_factor = st.slider("ws_ths_factor", 0.0001, 0.2, 0.025, 0.0005, format="%.4f")
-        ws_gl_vecinity = st.slider("ws_gl_vecinity", 1, 200, 15, 1)
+            ws_ths_factor = st.slider(
+                "ws_ths_factor", 0.0001, 0.2, 0.025, 0.0005, format="%.4f"
+            )
+            ws_gl_vecinity = st.slider("ws_gl_vecinity", 1, 200, 15, 1)
 
-    # keep both keys your code expects; controller.py uses both contours_mult and cont_mult in defaults
+    # TODO : i think these can be deleted
+    # If the expander is collapsed on first render, these vars won't exist yet.
+    # So give defaults if they weren't set (Streamlit reruns will populate them).
+    first_kernel_size = locals().get("first_kernel_size", (5, 5))
+    second_kernel_size = locals().get("second_kernel_size", (3, 3))
+    cont_mult = float(locals().get("cont_mult", 2.5))
+    bh_ks = locals().get("bh_ks", (7, 7))
+    bhm_iter = int(locals().get("bhm_iter", 4))
+    bhm_mult = int(locals().get("bhm_mult", 60))
+    cont_mult_fib = float(locals().get("cont_mult_fib", 2.5))
+    ws_ths_factor = float(locals().get("ws_ths_factor", 0.025))
+    ws_gl_vecinity = int(locals().get("ws_gl_vecinity", 15))
 
     params = {
-        "first_kernel_size": first_kernel_size,
-        "second_kernel_size": second_kernel_size,
-        "contours_mult": float(cont_mult),
-        "bh_ks": bh_ks,
-        "bhm_iter": int(bhm_iter),
-        "bhm_mult": int(bhm_mult),
-        "cont_mult": float(cont_mult_fib),  # used by fibers + flashes in your modules
-        "ws_ths_factor": float(ws_ths_factor),
-        "ws_gl_vecinity": int(ws_gl_vecinity),
         "otsu_classes": int(o_classes),
         "otsu_range": o_range,
+
+        "first_kernel_size": first_kernel_size,
+        "second_kernel_size": second_kernel_size,
+        "contours_mult": cont_mult,          # flashes path in your original UI
+        "bh_ks": bh_ks,
+        "bhm_iter": bhm_iter,
+        "bhm_mult": bhm_mult,
+        "cont_mult": cont_mult_fib,          # fibers + flashes in your modules
+        "ws_ths_factor": ws_ths_factor,
+        "ws_gl_vecinity": ws_gl_vecinity,
     }
     return params
 
@@ -133,6 +209,12 @@ def run_pipeline(
     outputs: Dict[str, Any] = {}
 
     if mode == "All Results":
+        stats, segmentation, coloring = getMeResults(base_img_gray, parameters)
+        fig, ax = plt.subplots(figsize=(14,8))
+        getSegmentationFigure(segmentation,stats,"out",ax=ax,)
+        outputs["results"] = fig_to_img(fig)
+
+    elif mode == "All Data":
         stats, segmentation, coloring = getMeResults(base_img_gray, parameters)
         outputs["stats"] = stats
         outputs["segmentation"] = segmentation
@@ -184,26 +266,16 @@ st.title("Image Processing Tuner")
 
 with st.sidebar:
     st.header("Input")
-    source = st.radio("Image source", ["Upload", "Pick from folder"], horizontal=False)
 
-    folder_default = "preprodata"
-    folder = st.text_input("Folder", folder_default, help="Used only when 'Pick from folder' is selected.")
 
     uploaded = None
     picked_path = None
 
-    if source == "Upload":
-        uploaded = st.file_uploader("Upload one image", type=["png", "jpg", "jpeg", "tif", "tiff", "bmp"])
-    else:
-        files = list_images_in_folder(folder)
-        if len(files) == 0:
-            st.warning(f"No images found in: {folder}")
-        else:
-            picked_path = st.selectbox("Select image", files)
+    uploaded = st.file_uploader("Upload one image", type=["png", "jpg", "jpeg", "tif", "tiff", "bmp"])
 
     st.divider()
     st.header("What to run")
-    mode = st.radio("Mode", ["All Results", "Fibers", "Flashes", "Pores"], index=0)
+    mode = st.radio("Mode", ["All Results", "All Data", "Fibers", "Flashes", "Pores"], index=0)
 
     st.divider()
     params = build_parameters_ui()
@@ -215,14 +287,12 @@ with st.sidebar:
 # Load image
 base_gray: Optional[np.ndarray] = None
 load_err: Optional[str] = None
+img_source_label: Optional[str] = None
 
 try:
-    if source == "Upload":
         if uploaded is not None:
             base_gray = decode_uploaded_gray(uploaded)
-    else:
-        if picked_path is not None:
-            base_gray = imread_gray(picked_path)
+            img_source_label = uploaded.name
 except Exception as e:
     load_err = str(e)
 
@@ -233,13 +303,10 @@ if base_gray is None:
     st.info("Pick or upload an image to start.")
     st.stop()
 
-# Display original
-left, right = st.columns([1, 1])
+# Export
+name_only = name_only_from_source(img_source_label or "image")
+st.session_state["last_name_only"] = name_only
 
-with left:
-    st.subheader("Original")
-    st.image(to_rgb_for_display(base_gray), use_container_width=True)
-    st.caption(f"Shape: {base_gray.shape} | dtype: {base_gray.dtype}")
 
 # Run + display
 if run_btn:
@@ -252,8 +319,106 @@ if run_btn:
     except Exception as e:
         st.exception(e)
 
+
+def export_last_outputs(outputs: Dict[str, Any], name_only: str) -> Tuple[list[str], Optional[str]]:
+    """
+    Save current outputs to disk using controller.py naming.
+    Returns (saved_paths, error_message).
+    """
+    saved: list[str] = []
+    try:
+        # Match controller.py folders + names
+        if "segmentation" in outputs or "coloring" in outputs:
+            out_dir = "processed_results"
+            ensure_dir(out_dir)
+
+            if "segmentation" in outputs:
+                p = os.path.join(out_dir, f"{name_only}_seg.png")
+                cv2.imwrite(p, to_uint8(outputs["segmentation"]))
+                saved.append(p)
+
+            if "coloring" in outputs:
+                p = os.path.join(out_dir, f"{name_only}_color.png")
+                cv2.imwrite(p, to_uint8(outputs["coloring"]))
+                saved.append(p)
+
+        if "binary_mask" in outputs:
+            out_dir = "processed_fibers"
+            ensure_dir(out_dir)
+            p = os.path.join(out_dir, f"{name_only}_fib.png")
+            cv2.imwrite(p, to_uint8(outputs["binary_mask"]))
+            saved.append(p)
+
+        if "mask_flashes" in outputs:
+            out_dir = "processed_flashes"
+            ensure_dir(out_dir)
+            p = os.path.join(out_dir, f"{name_only}_flash.png")
+            cv2.imwrite(p, to_uint8(outputs["mask_flashes"]))
+            saved.append(p)
+
+        if "mask_bubbles" in outputs:
+            out_dir = "processed_pores"
+            ensure_dir(out_dir)
+            p = os.path.join(out_dir, f"{name_only}_pore.png")
+            cv2.imwrite(p, to_uint8(outputs["mask_bubbles"]))
+            saved.append(p)
+
+        if "results" in outputs:
+            items.append((f"{name_only}_results.png", png_bytes(outputs["results"])))
+
+        # Note: controller.py doesn't export stats or undefined_region_mask, so we keep parity.
+        return saved, None
+    except Exception as e:
+        return saved, str(e)
+
+# Display original
+left, right = st.columns([1, 1])
+
+with left:
+    st.subheader("Original")
+    st.image(to_rgb_for_display(base_gray), width="stretch")
+    st.caption(f"Shape: {base_gray.shape} | dtype: {base_gray.dtype}")
+
+    st.divider()
+
+    outputs = st.session_state.get("last_outputs", None)
+    name_only = st.session_state.get("last_name_only", "image")
+
+    if outputs is None:
+        st.info("Run the pipeline first to enable downloads.")
+    else:
+        # build stable bytes once per rerun (streamlit-friendly)
+        items = []
+
+        if "results" in outputs:
+            items.append((f"{name_only}_results.png", png_bytes_bgr(outputs["results"])))
+        if "segmentation" in outputs:
+            items.append((f"{name_only}_seg.png", png_bytes(outputs["segmentation"])))
+        if "coloring" in outputs:
+            items.append((f"{name_only}_color.png", png_bytes(outputs["coloring"])))
+        if "binary_mask" in outputs:
+            items.append((f"{name_only}_fib.png", png_bytes(outputs["binary_mask"])))
+        if "mask_flashes" in outputs:
+            items.append((f"{name_only}_flash.png", png_bytes(outputs["mask_flashes"])))
+        if "mask_bubbles" in outputs:
+            items.append((f"{name_only}_pore.png", png_bytes(outputs["mask_bubbles"])))
+
+        if not items:
+            st.warning("No exportable images in the last run.")
+        else:
+            for fname, data in items:
+                st.download_button(
+                    label=f"Download {fname}",
+                    data=data,
+                    file_name=fname,
+                    mime="image/png",
+                    width="stretch",
+                )
+
+
 outputs = st.session_state.get("last_outputs", None)
 last_mode = st.session_state.get("last_mode", None)
+last_name_only = st.session_state.get("last_name_only", "image")
 
 with right:
     st.subheader("Output")
@@ -263,6 +428,10 @@ with right:
     else:
         st.caption(f"Last run: {last_mode}")
 
+        if "results" in outputs:
+            st.markdown("**Results**")
+            st.image(outputs["results"], width="stretch")
+
         if "stats" in outputs:
             st.markdown("**Stats**")
             # stats is a dict in your pipeline
@@ -270,33 +439,43 @@ with right:
 
         if "segmentation" in outputs:
             st.markdown("**Segmentation**")
-            st.image(to_rgb_for_display(outputs["segmentation"]), use_container_width=True)
+            st.image(to_rgb_for_display(outputs["segmentation"]), width="stretch")
 
         if "coloring" in outputs:
             st.markdown("**Coloring**")
-            st.image(to_rgb_for_display(outputs["coloring"]), use_container_width=True)
+            st.image(to_rgb_for_display(outputs["coloring"]), width="stretch")
 
         if "binary_mask" in outputs:
             st.markdown("**Fibers mask**")
-            st.image(normalize_mask_for_display(outputs["binary_mask"]), use_container_width=True)
+            st.image(normalize_mask_for_display(outputs["binary_mask"]), width="stretch")
 
         if "contours_filtered_img" in outputs:
             st.markdown("**Contours filtered**")
-            st.image(to_rgb_for_display(outputs["contours_filtered_img"]), use_container_width=True)
+            st.image(to_rgb_for_display(outputs["contours_filtered_img"]), width="stretch")
 
         if "list_masks_count" in outputs:
             st.caption(f"Fiber sub-masks: {outputs['list_masks_count']}")
 
         if "mask_flashes" in outputs:
             st.markdown("**Flashes mask**")
-            st.image(normalize_mask_for_display(outputs["mask_flashes"]), use_container_width=True)
+            st.image(normalize_mask_for_display(outputs["mask_flashes"]), width="stretch")
 
         if "mask_bubbles" in outputs:
             st.markdown("**Pores mask (bubbles)**")
-            st.image(normalize_mask_for_display(outputs["mask_bubbles"]), use_container_width=True)
+            st.image(normalize_mask_for_display(outputs["mask_bubbles"]), width="stretch")
 
         if "undefined_region_mask" in outputs:
             st.markdown("**Undefined region mask**")
-            st.image(normalize_mask_for_display(outputs["undefined_region_mask"]), use_container_width=True)
+            st.image(normalize_mask_for_display(outputs["undefined_region_mask"]), width="stretch")
 
 st.caption("Tip: tweak parameters on the left and hit **Run processing** again to compare quickly.")
+
+
+
+
+# TODO :
+# esta medio lenteja
+# aplicar a toda una carpeta:
+#   hace que selecciones multiples y de esos elegis uno para testear entonces se guarda 
+#     -cada foto/ no y procesada  - los parametros 
+#    y podes elgir de esas cual queres ver en vivo y dsps descargas todo
