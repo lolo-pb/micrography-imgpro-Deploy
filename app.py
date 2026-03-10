@@ -475,4 +475,7 @@ st.caption("Tip: tweak parameters on the left and hit **Run processing** again t
 
 # TODO :
 # esta medio lenteja
-# aplicar a toda una carpeta
+# aplicar a toda una carpeta:
+#   hace que selecciones multiples y de esos elegis uno para testear entonces se guarda 
+#     -cada foto/ no y procesada  - los parametros 
+#    y podes elgir de esas cual queres ver en vivo y dsps descargas todo
