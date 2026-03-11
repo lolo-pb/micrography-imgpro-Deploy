@@ -157,7 +157,7 @@ if "img_data" not in st.session_state:
     st.session_state.img_data = {}
 
 with st.sidebar:
-    st.header("1. Upload")
+    st.header("Upload")
     uploaded_files = st.file_uploader("Select images", type=["png", "jpg", "tif"], accept_multiple_files=True)
     
     if uploaded_files:
@@ -176,7 +176,7 @@ with st.sidebar:
 
     if st.session_state.img_data:
         st.divider()
-        st.header("2. Selection & Tuning")
+        st.header("Selection & Tuning")
         active_file = st.selectbox("Pick image to edit:", list(st.session_state.img_data.keys()))
         
         data = st.session_state.img_data[active_file]
@@ -200,7 +200,7 @@ with st.sidebar:
                 st.success("Applied to all!")
 
         st.divider()
-        st.header("3. Batch Export")
+        st.header("Batch Export")
         if st.button("🚀 Process & Download All (ZIP)", type="primary"):
             zip_buffer = io.BytesIO()
             prog = st.progress(0)
