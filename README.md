@@ -6,6 +6,7 @@ deploy : {todo there should be a link here}
 
 or run:
 ```
+pip install streamlit opencv-python numpy
 streamlit run app.py
 ```
 
