@@ -126,15 +126,25 @@ def run_pipeline(base_img_gray: np.ndarray, parameters: Dict[str, Any]):
         st.error(f"Pipeline error: {e}")
     return outputs
 
-def serialize_stats_for_export(stats):
+def serialize_stats_for_export(stats, fname, params):
     if not stats:
         return "stats.csv", b""
 
-    try:
-        df = pd.DataFrame([stats])
-        return "stats.csv", df.to_csv(index=False).encode("utf-8")
-    except Exception:
-        return "stats.txt", str(stats).encode("utf-8")
+    row = {}
+
+    # add filename
+    row["file"] = fname
+
+    # add parameters
+    for k, v in params.items():
+        row[f"param_{k}"] = v
+
+    # add stats
+    for k, v in stats.items():
+        row[k] = v
+
+    df = pd.DataFrame([row])
+    return "stats.csv", df.to_csv(index=False).encode("utf-8")
 
 def get_exportable_items(outputs: Dict[str, Any], name_only: str, export_result: bool, export_data: bool) -> list[Tuple[str, bytes]]:
     items = []
@@ -223,7 +233,7 @@ with st.sidebar:
                         )
 
                     if d.get("export_data", False) and out and "stats" in out:
-                        stats_fname, stats_bytes = serialize_stats_for_export(out["stats"])
+                        stats_fname, stats_bytes = serialize_stats_for_export(out["stats"],name_only,d["params"])
                         zip_file.writestr(
                             f"{name_only}_{stats_fname}",
                             stats_bytes
