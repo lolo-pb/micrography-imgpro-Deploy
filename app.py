@@ -69,6 +69,17 @@ def normalize_mask_for_display(mask: np.ndarray) -> np.ndarray:
     if mx <= mn: return np.zeros_like(mask, dtype=np.uint8)
     return ((m - mn) / (mx - mn) * 255.0).clip(0, 255).astype(np.uint8)
 
+def make_preview_image(img: np.ndarray, max_side: int = 1000) -> np.ndarray:
+    h, w = img.shape[:2]
+    longest = max(h, w)
+    if longest <= max_side:
+        return img.copy()
+
+    scale = max_side / float(longest)
+    new_w = max(1, int(round(w * scale)))
+    new_h = max(1, int(round(h * scale)))
+    return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
 def as_odd(n: int) -> int:
     return n if (n % 2 == 1) else n + 1
 
@@ -170,21 +181,31 @@ with st.sidebar:
     st.header("Upload")
     uploaded_files = st.file_uploader("Select images", type=["png", "jpg", "tif"], accept_multiple_files=True)
     
+    current_names = [f.name for f in uploaded_files] if uploaded_files else []
+
+    st.session_state.img_data = {
+        k: v for k, v in st.session_state.img_data.items()
+        if k in current_names
+    }
+
+    for k in st.session_state.img_data:
+        st.session_state.img_data[k]["preview_image"] = make_preview_image(
+            st.session_state.img_data[k]["image"],
+            st.session_state.get("preview_max_side", 1000) # this sets the default
+        )
+
     if uploaded_files:
-        current_names = [f.name for f in uploaded_files]
-        # Cleanup session state if files removed
-        st.session_state.img_data = {k: v for k, v in st.session_state.img_data.items() if k in current_names}
-        # Add new files
         for f in uploaded_files:
             if f.name not in st.session_state.img_data:
+                img = decode_uploaded_gray(f)
                 st.session_state.img_data[f.name] = {
-                    "image": decode_uploaded_gray(f), 
+                    "image": img,
+                    "preview_image": make_preview_image(img, st.session_state.get("preview_max_side", 1000)), # or this
                     "params": get_default_params(),
                     "export_result": True,
                     "export_data": False,
                     "outputs": None
                 }
-
     if st.session_state.img_data:
         st.divider()
         st.header("Selection & Tuning")
@@ -204,7 +225,7 @@ with st.sidebar:
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Preview"):
-                data["outputs"] = run_pipeline(data["image"], data["params"])
+                data["outputs"] = run_pipeline(data["preview_image"], data["params"])
         with col2:
             if st.button("Apply to All"):
                 for k in st.session_state.img_data:
@@ -213,6 +234,8 @@ with st.sidebar:
                     st.session_state.img_data[k]["export_data"] = data["export_data"]
                 st.success("Applied to all!")
 
+        preview_max_side = st.slider("Preview max side", 100, 2000, 1000, 50, key="preview_max_side" )
+        
         st.divider()
         st.header("Batch Export")
         if st.button("🚀 Process & Download All (ZIP)", type="primary"):
@@ -256,6 +279,7 @@ if st.session_state.img_data and 'active_file' in locals():
     with col_l:
         st.subheader(f"Input: {active_file}")
         st.image(to_rgb_for_display(data["image"]), width="stretch")
+        #st.image(to_rgb_for_display(data["preview_image"]), width="stretch")
     with col_r:
         st.subheader("Output Preview")
         if data["outputs"]:
@@ -266,8 +290,3 @@ if st.session_state.img_data and 'active_file' in locals():
             st.info("Adjust parameters and click 'Preview'.")
 else:
     st.info("Please upload images in the sidebar.")
-
-
-
-# TODO
-#   que use versiones downsacaled para el preview
