@@ -226,7 +226,6 @@ with st.sidebar:
             prog = st.progress(0)
             status = st.empty()
 
-            stats_rows = []
             with zipfile.ZipFile(zip_buffer, "w") as zip_file:
                 for idx, (fname, d) in enumerate(st.session_state.img_data.items()):
                     status.text(f"Processing {fname}...")
@@ -238,31 +237,16 @@ with st.sidebar:
                             f"{name_only}_result.png",
                             png_bytes_bgr(out["results"])
                         )
+
                     if d.get("export_data", False) and out and "stats" in out:
-                        stats = out["stats"]
-                        row = {
-                            "filename": fname,
-                            "pores": stats.get("pores"),
-                            "fibers": stats.get("fibers"),
-                            "resin": stats.get("resin"),
-                            "undefined": stats.get("undefined"),
-                            "sumcheck": stats.get("sumcheck"),
-                        }
-                        for k, v in d["params"].items():
-                            row[k] = v
-                        stats_rows.append(row)
+                        stats_fname, stats_bytes = serialize_stats_for_export(out["stats"])
+                        zip_file.writestr(
+                            f"{name_only}_{stats_fname}",
+                            stats_bytes
+                        )
+
                     prog.progress((idx + 1) / len(st.session_state.img_data))
-                if len(stats_rows) > 0:
-                
-                    df = pd.DataFrame(stats_rows)
 
-                    csv_buffer = io.StringIO()
-                    df.to_csv(csv_buffer, index=False)
-
-                    zip_file.writestr(
-                        "stats.csv",
-                        csv_buffer.getvalue()
-                    )
             status.text("Done!")
             st.download_button(
                 "Download ZIP",
