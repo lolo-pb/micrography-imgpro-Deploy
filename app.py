@@ -126,29 +126,13 @@ def run_pipeline(base_img_gray: np.ndarray, parameters: Dict[str, Any]):
         st.error(f"Pipeline error: {e}")
     return outputs
 
-def serialize_stats_for_export(stats: Any) -> Tuple[str, bytes]:
-    if stats is None:
-        return "stats.json", b"{}"
-
-    if isinstance(stats, pd.DataFrame):
-        return "stats.csv", stats.to_csv(index=False).encode("utf-8")
-
-    if isinstance(stats, dict):
-        try:
-            df = pd.DataFrame([stats])
-            return "stats.csv", df.to_csv(index=False).encode("utf-8")
-        except Exception:
-            pass
-
-    if isinstance(stats, (list, tuple)):
-        try:
-            df = pd.DataFrame(stats)
-            return "stats.csv", df.to_csv(index=False).encode("utf-8")
-        except Exception:
-            pass
+def serialize_stats_for_export(stats):
+    if not stats:
+        return "stats.csv", b""
 
     try:
-        return "stats.json", json.dumps(stats, indent=2, default=str).encode("utf-8")
+        df = pd.DataFrame([stats])
+        return "stats.csv", df.to_csv(index=False).encode("utf-8")
     except Exception:
         return "stats.txt", str(stats).encode("utf-8")
 
@@ -277,5 +261,4 @@ else:
 
 # TODO
 #   que use versiones downsacaled para el preview
-#   checkboxes para lo que queres procesar y un export de la data
 #   que en el json se incluya los parametros, y el nombre de la foto(inputs y outputs)
