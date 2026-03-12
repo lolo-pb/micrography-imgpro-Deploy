@@ -271,4 +271,3 @@ else:
 
 # TODO
 #   que use versiones downsacaled para el preview
-#   que en el json se incluya los parametros, y el nombre de la foto(inputs y outputs)
