@@ -1,6 +1,7 @@
 import os
 import zipfile
 import io
+import json
 from typing import Dict, Any, Tuple
 
 import cv2
@@ -8,6 +9,7 @@ cv2.setUseOptimized(True)
 import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # Existing pipeline modules 
 from getmeresults import getMeResults
@@ -112,42 +114,56 @@ def build_parameters_ui(p: Dict[str, Any], key_suffix: str) -> Dict[str, Any]:
         "ws_gl_vecinity": ws_gl_vecinity,
     }
 
-def run_pipeline(base_img_gray: np.ndarray, mode: str, parameters: Dict[str, Any]):
+def run_pipeline(base_img_gray: np.ndarray, parameters: Dict[str, Any]):
     outputs: Dict[str, Any] = {}
     try:
-        if mode == "All Results":
-            stats, segmentation, coloring = getMeResults(base_img_gray, parameters)
-            fig, ax = plt.subplots(figsize=(10,6))
-            getSegmentationFigure(segmentation, stats, "out", ax=ax)
-            outputs["results"] = fig_to_img(fig)
-        elif mode == "Fibers":
-            binary_mask, _, _ = gmf.getMeFibers(
-                base_img_gray, bh_ks=parameters["bh_ks"], bhm_iter=parameters["bhm_iter"],
-                bhm_mult=parameters["bhm_mult"], cont_mult=parameters["cont_mult"],
-                ws_ths_factor=parameters["ws_ths_factor"], ws_gl_vecinity=parameters["ws_gl_vecinity"],
-                otsu_classes=parameters["otsu_classes"], otsu_range=parameters["otsu_range"], 
-            )
-            outputs["binary_mask"] = binary_mask
-        elif mode == "Flashes":
-            outputs["mask_flashes"] = gmfl.getMeFlashes(base_img_gray, cont_mult=parameters["cont_mult"])
-        elif mode == "Pores":
-            mask_bubbles, _ = gmp.getMetPores(base_img_gray, parameters["first_kernel_size"], parameters["second_kernel_size"])
-            outputs["mask_bubbles"] = mask_bubbles
+        stats, segmentation, coloring = getMeResults(base_img_gray, parameters)
+        fig, ax = plt.subplots(figsize=(10,6))
+        getSegmentationFigure(segmentation, stats, "out", ax=ax)
+        outputs["results"] = fig_to_img(fig)
+        outputs["stats"] = stats
     except Exception as e:
         st.error(f"Pipeline error: {e}")
     return outputs
 
-def get_exportable_items(outputs: Dict[str, Any], name_only: str) -> list[Tuple[str, bytes]]:
+def serialize_stats_for_export(stats: Any) -> Tuple[str, bytes]:
+    if stats is None:
+        return "stats.json", b"{}"
+
+    if isinstance(stats, pd.DataFrame):
+        return "stats.csv", stats.to_csv(index=False).encode("utf-8")
+
+    if isinstance(stats, dict):
+        try:
+            df = pd.DataFrame([stats])
+            return "stats.csv", df.to_csv(index=False).encode("utf-8")
+        except Exception:
+            pass
+
+    if isinstance(stats, (list, tuple)):
+        try:
+            df = pd.DataFrame(stats)
+            return "stats.csv", df.to_csv(index=False).encode("utf-8")
+        except Exception:
+            pass
+
+    try:
+        return "stats.json", json.dumps(stats, indent=2, default=str).encode("utf-8")
+    except Exception:
+        return "stats.txt", str(stats).encode("utf-8")
+
+def get_exportable_items(outputs: Dict[str, Any], name_only: str, export_result: bool, export_data: bool) -> list[Tuple[str, bytes]]:
     items = []
-    if not outputs: return items
-    mapping = {
-        "results": (f"{name_only}_results.png", png_bytes_bgr),
-        "binary_mask": (f"{name_only}_fib.png", png_bytes),
-        "mask_flashes": (f"{name_only}_flash.png", png_bytes),
-        "mask_bubbles": (f"{name_only}_pore.png", png_bytes)
-    }
-    for key, (fname, func) in mapping.items():
-        if key in outputs: items.append((fname, func(outputs[key])))
+    if not outputs:
+        return items
+
+    if export_result and "results" in outputs:
+        items.append((f"{name_only}_results.png", png_bytes_bgr(outputs["results"])))
+
+    if export_data and "stats" in outputs:
+        stats_fname, stats_bytes = serialize_stats_for_export(outputs["stats"])
+        items.append((f"{name_only}_{stats_fname}", stats_bytes))
+
     return items
 
 # ---------- UI Execution ----------
@@ -170,7 +186,8 @@ with st.sidebar:
                 st.session_state.img_data[f.name] = {
                     "image": decode_uploaded_gray(f), 
                     "params": get_default_params(),
-                    "mode": "All Results", 
+                    "export_result": True,
+                    "export_data": False,
                     "outputs": None
                 }
 
@@ -181,22 +198,25 @@ with st.sidebar:
         
         data = st.session_state.img_data[active_file]
         
-        # Mode Selection
-        modes = ["All Results", "Fibers", "Flashes", "Pores"]
-        data["mode"] = st.selectbox("Processing Mode", modes, index=modes.index(data["mode"]), key=f"mode_{active_file}")
-        
+        st.caption("Processing Mode: All Results")
+
+        st.subheader("Export Options")
+        data["export_result"] = st.checkbox("Result", value=data.get("export_result", True), key=f"export_result_{active_file}")
+        data["export_data"] = st.checkbox("Data (stats)", value=data.get("export_data", False), key=f"export_data_{active_file}")
+
         # Parameters (Unique keys prevent state bleeding)
         data["params"] = build_parameters_ui(data["params"], active_file)
 
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Preview"):
-                data["outputs"] = run_pipeline(data["image"], data["mode"], data["params"])
+                data["outputs"] = run_pipeline(data["image"], data["params"])
         with col2:
             if st.button("Apply to All"):
                 for k in st.session_state.img_data:
                     st.session_state.img_data[k]["params"] = data["params"].copy()
-                    st.session_state.img_data[k]["mode"] = data["mode"]
+                    st.session_state.img_data[k]["export_result"] = data["export_result"]
+                    st.session_state.img_data[k]["export_data"] = data["export_data"]
                 st.success("Applied to all!")
 
         st.divider()
@@ -205,18 +225,51 @@ with st.sidebar:
             zip_buffer = io.BytesIO()
             prog = st.progress(0)
             status = st.empty()
-            
+
+            stats_rows = []
             with zipfile.ZipFile(zip_buffer, "w") as zip_file:
                 for idx, (fname, d) in enumerate(st.session_state.img_data.items()):
                     status.text(f"Processing {fname}...")
-                    out = run_pipeline(d["image"], d["mode"], d["params"])
-                    items = get_exportable_items(out, name_only_from_source(fname))
-                    for item_name, item_bytes in items:
-                        zip_file.writestr(item_name, item_bytes)
+                    out = run_pipeline(d["image"], d["params"])
+                    name_only = name_only_from_source(fname)
+
+                    if d.get("export_result", True) and out and "results" in out:
+                        zip_file.writestr(
+                            f"{name_only}_result.png",
+                            png_bytes_bgr(out["results"])
+                        )
+                    if d.get("export_data", False) and out and "stats" in out:
+                        stats = out["stats"]
+                        row = {
+                            "filename": fname,
+                            "pores": stats.get("pores"),
+                            "fibers": stats.get("fibers"),
+                            "resin": stats.get("resin"),
+                            "undefined": stats.get("undefined"),
+                            "sumcheck": stats.get("sumcheck"),
+                        }
+                        for k, v in d["params"].items():
+                            row[k] = v
+                        stats_rows.append(row)
                     prog.progress((idx + 1) / len(st.session_state.img_data))
-            
+                if len(stats_rows) > 0:
+                
+                    df = pd.DataFrame(stats_rows)
+
+                    csv_buffer = io.StringIO()
+                    df.to_csv(csv_buffer, index=False)
+
+                    zip_file.writestr(
+                        "stats.csv",
+                        csv_buffer.getvalue()
+                    )
             status.text("Done!")
-            st.download_button("Download ZIP", zip_buffer.getvalue(), "batch_results.zip", "application/zip")
+            st.download_button(
+                "Download ZIP",
+                zip_buffer.getvalue(),
+                "batch_results.zip",
+                "application/zip"
+            )
 
 # ---------- Main Panel ----------
 if st.session_state.img_data and 'active_file' in locals():
