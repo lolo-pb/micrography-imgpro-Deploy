@@ -235,3 +235,10 @@ if st.session_state.img_data and 'active_file' in locals():
             st.info("Adjust parameters and click 'Preview'.")
 else:
     st.info("Please upload images in the sidebar.")
+
+
+
+# TODO
+#   que use versiones downsacaled para el preview
+#   checkboxes para lo que queres procesar y un export de la data
+#   que en el json se incluya los parametros, y el nombre de la foto(inputs y outputs)
