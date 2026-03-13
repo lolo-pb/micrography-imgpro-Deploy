@@ -2,7 +2,7 @@
 Image processing of micrography pictures.
 
 # app.py / the easier one / for not informatic people
-deploy : {todo there should be a link here}
+DEPLOY : https://itba-rocketry-imicrography-imgpro.streamlit.app/
 
 or run:
 ```
