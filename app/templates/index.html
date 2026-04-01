@@ -8,7 +8,99 @@
     <script src="/static/vendor/htmx.min.js" defer></script>
     <script src="/static/vendor/alpine.min.js" defer></script>
 </head>
-<body>
-    <h1>Micrography Image Processor</h1>
+<body x-data="{
+    mode: 'simple',
+    files: [],
+    selected: null,
+    params: {
+        gamma: 1.0,
+        otsu_classes: 5,
+        otsu_range_low: 3,
+        otsu_range_high: 4,
+        cont_mult: 2.5,
+        ws_ths_factor: 0.025,
+        ws_gl_vecinity: 15,
+        bh_ks: 7,
+        bhm_iter: 4,
+        bhm_mult: 60
+    }
+}">
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>Micrography</h1>
+
+            <section>
+                <h2>Mode</h2>
+                <div class="mode-selector">
+                    <button
+                        :class="mode === 'simple' ? 'active' : ''"
+                        @click="mode = 'simple'"
+                    >Simple</button>
+                    <button
+                        :class="mode === 'pro' ? 'active' : ''"
+                        @click="mode = 'pro'"
+                    >Pro</button>
+                </div>
+            </section>
+
+            <section>
+                <h2>Upload</h2>
+                <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.tif"
+                    multiple
+                    @change="
+                        const added = [];
+                        for (const f of $event.target.files) {
+                            if (!files.find(e => e.name === f.name)) {
+                                added.push({ name: f.name, file: f, url: URL.createObjectURL(f) });
+                            }
+                        }
+                        files = [...files, ...added];
+                        if (files.length && !selected) selected = files[0].name;
+                    "
+                >
+            </section>
+
+            <template x-if="files.length > 0">
+                <section>
+                    <h2>Images</h2>
+                    <ul class="image-list">
+                        <template x-for="f in files" :key="f.name">
+                            <li
+                                :class="selected === f.name ? 'active' : ''"
+                                @click="selected = f.name"
+                                x-text="f.name"
+                            ></li>
+                        </template>
+                    </ul>
+                </section>
+            </template>
+
+            <template x-if="selected">
+                <section>
+                    <h2>Parameters</h2>
+                    <!-- simple mode params -->
+                    <div x-show="mode === 'simple'">
+                        {% include "params_simple.html" %}
+                    </div>
+                    <!-- pro mode params -->
+                    <div x-show="mode === 'pro'">
+                        {% include "params_pro.html" %}
+                    </div>
+
+                    <button class="btn primary" style="margin-top: 1rem;">Preview</button>
+                </section>
+            </template>
+        </aside>
+
+        <main class="main-area">
+            <div id="preview-area">
+                <template x-if="!selected">
+                    <p class="placeholder">image will appear here</p>
+                </template>
+            </div>
+        </main>
+    </div>
 </body>
 </html>

@@ -1,1 +1,85 @@
-@tailwind base; @tailwind components; @tailwind utilities;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply m-0 font-sans bg-gray-50 text-gray-900;
+    }
+}
+
+.layout {
+    @apply flex h-screen;
+}
+
+.sidebar {
+    @apply w-80 shrink-0 bg-white border-r border-gray-200 p-4 overflow-y-auto;
+}
+
+.sidebar h1 {
+    @apply text-lg font-semibold mb-4;
+}
+
+.sidebar h2 {
+    @apply text-sm font-medium text-gray-500 uppercase tracking-wide mb-2;
+}
+
+.sidebar section {
+    @apply mb-6;
+}
+
+.mode-selector {
+    @apply flex gap-1;
+}
+
+.mode-selector button {
+    @apply flex-1 px-3 py-1.5 text-sm rounded border border-gray-300 bg-white cursor-pointer;
+}
+
+.mode-selector button.active {
+    @apply bg-gray-900 text-white border-gray-900;
+}
+
+.image-list {
+    @apply list-none p-0 m-0;
+}
+
+.image-list li {
+    @apply px-2 py-1.5 text-sm rounded cursor-pointer truncate;
+}
+
+.image-list li:hover {
+    @apply bg-gray-100;
+}
+
+.image-list li.active {
+    @apply bg-gray-100 font-medium;
+}
+
+.sidebar label {
+    @apply block mb-3 text-sm;
+}
+
+.sidebar label span {
+    @apply float-right text-gray-500 tabular-nums;
+}
+
+.sidebar input[type="range"] {
+    @apply w-full mt-1;
+}
+
+.btn {
+    @apply w-full px-3 py-2 text-sm rounded border cursor-pointer;
+}
+
+.btn.primary {
+    @apply bg-gray-900 text-white border-gray-900;
+}
+
+.main-area {
+    @apply flex-1 p-6 overflow-y-auto;
+}
+
+.placeholder {
+    @apply text-gray-400 text-center mt-20;
+}
