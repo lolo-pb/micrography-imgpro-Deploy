@@ -83,3 +83,15 @@
 .placeholder {
     @apply text-gray-400 text-center mt-20;
 }
+
+.preview-grid {
+    @apply grid grid-cols-2 gap-6;
+}
+
+.preview-grid img {
+    @apply w-full rounded;
+}
+
+.preview-grid h2 {
+    @apply text-sm font-medium text-gray-500 uppercase tracking-wide mb-2;
+}

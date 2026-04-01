@@ -95,11 +95,24 @@
         </aside>
 
         <main class="main-area">
-            <div id="preview-area">
-                <template x-if="!selected">
-                    <p class="placeholder">image will appear here</p>
-                </template>
-            </div>
+            <template x-if="!selected">
+                <p class="placeholder">image will appear here</p>
+            </template>
+
+            <template x-if="selected">
+                <div class="preview-grid">
+                    <div>
+                        <h2>Input</h2>
+                        <img :src="files.find(f => f.name === selected)?.url" alt="input">
+                    </div>
+                    <div>
+                        <h2>Result</h2>
+                        <div id="preview-area">
+                            <p class="placeholder">click preview to process</p>
+                        </div>
+                    </div>
+                </div>
+            </template>
         </main>
     </div>
 </body>
