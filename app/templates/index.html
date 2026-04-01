@@ -23,7 +23,8 @@
         bh_ks: 7,
         bhm_iter: 4,
         bhm_mult: 60
-    }
+    },
+    loading: false
 }">
     <div class="layout">
         <aside class="sidebar">
@@ -45,21 +46,25 @@
 
             <section>
                 <h2>Upload</h2>
-                <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.tif"
-                    multiple
-                    @change="
-                        const added = [];
-                        for (const f of $event.target.files) {
-                            if (!files.find(e => e.name === f.name)) {
-                                added.push({ name: f.name, file: f, url: URL.createObjectURL(f) });
+                <label class="btn">
+                    Choose file(s)
+                    <input
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.tif"
+                        multiple
+                        style="display: none;"
+                        @change="
+                            const added = [];
+                            for (const f of $event.target.files) {
+                                if (!files.find(e => e.name === f.name)) {
+                                    added.push({ name: f.name, file: f, url: URL.createObjectURL(f) });
+                                }
                             }
-                        }
-                        files = [...files, ...added];
-                        if (files.length && !selected) selected = files[0].name;
-                    "
-                >
+                            files = [...files, ...added];
+                            if (files.length && !selected) selected = files[0].name;
+                        "
+                    >
+                </label>
             </section>
 
             <template x-if="files.length > 0">
@@ -89,7 +94,27 @@
                         {% include "params_pro.html" %}
                     </div>
 
-                    <button class="btn primary" style="margin-top: 1rem;">Preview</button>
+                    <button
+                        class="btn primary"
+                        style="margin-top: 1rem;"
+                        :disabled="loading"
+                        @click="
+                            const entry = files.find(f => f.name === selected);
+                            if (!entry) return;
+                            loading = true;
+                            const fd = new FormData();
+                            fd.append('image', entry.file);
+                            fd.append('mode', mode);
+                            fd.append('params', JSON.stringify(params));
+                            fetch('/preview', { method: 'POST', body: fd })
+                                .then(r => r.text())
+                                .then(html => document.getElementById('preview-area').innerHTML = html)
+                                .finally(() => loading = false);
+                        "
+                    >
+                        <span x-show="!loading">Preview</span>
+                        <span x-show="loading">Processing...</span>
+                    </button>
                 </section>
             </template>
         </aside>

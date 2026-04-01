@@ -69,7 +69,7 @@
 }
 
 .btn {
-    @apply w-full px-3 py-2 text-sm rounded border cursor-pointer;
+    @apply px-3 py-2 text-sm rounded border cursor-pointer w-full text-center;
 }
 
 .btn.primary {
@@ -94,4 +94,20 @@
 
 .preview-grid h2 {
     @apply text-sm font-medium text-gray-500 uppercase tracking-wide mb-2;
+}
+
+.stats-table {
+    @apply w-full text-sm mt-3;
+}
+
+.stats-table td {
+    @apply py-1 px-2;
+}
+
+.stats-table tr:nth-child(even) {
+    @apply bg-gray-50;
+}
+
+.error {
+    @apply text-red-600 text-sm;
 }
