@@ -76,8 +76,21 @@
     @apply float-right text-gray-500 tabular-nums;
 }
 
+.sidebar input[type="number"] {
+    @apply float-right text-right text-gray-500 tabular-nums bg-transparent border-0 text-sm;
+    width: 4em;
+}
+
 .sidebar input[type="range"] {
-    @apply w-full mt-1;
+    @apply w-full mt-1 h-1.5 appearance-none bg-gray-200 rounded-full outline-none;
+}
+
+.sidebar input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none w-3.5 h-3.5 bg-gray-900 rounded-full cursor-pointer;
+}
+
+.sidebar input[type="range"]::-moz-range-thumb {
+    @apply w-3.5 h-3.5 bg-gray-900 rounded-full cursor-pointer border-0;
 }
 
 .btn {
@@ -116,8 +129,12 @@
     @apply py-1 px-2;
 }
 
-.stats-table tr:nth-child(even) {
-    @apply bg-gray-50;
+.stats-table td:first-child {
+    @apply text-gray-500;
+}
+
+.stats-table td:last-child {
+    @apply text-right font-medium tabular-nums;
 }
 
 .error {
