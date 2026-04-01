@@ -56,11 +56,12 @@
                             const added = [];
                             for (const f of $event.target.files) {
                                 if (!files.find(e => e.name === f.name)) {
-                                    added.push({ name: f.name, file: f, url: URL.createObjectURL(f) });
+                                    added.push({ name: f.name, file: f, url: URL.createObjectURL(f), resultHtml: null });
                                 }
                             }
                             files = [...files, ...added];
                             if (files.length && !selected) selected = files[0].name;
+                            $event.target.value = '';
                         "
                     >
                 </label>
@@ -116,7 +117,10 @@
                             fd.append('params', JSON.stringify(params));
                             fetch('/preview', { method: 'POST', body: fd })
                                 .then(r => r.text())
-                                .then(html => document.getElementById('preview-area').innerHTML = html)
+                                .then(html => {
+                                    entry.resultHtml = html;
+                                    document.getElementById('preview-area').innerHTML = html;
+                                })
                                 .finally(() => loading = false);
                         "
                     >
@@ -140,9 +144,13 @@
                     </div>
                     <div>
                         <h2>Result</h2>
-                        <div id="preview-area">
-                            <p class="placeholder">click preview to process</p>
-                        </div>
+                        <div id="preview-area"
+                            x-effect="
+                                const entry = files.find(f => f.name === selected);
+                                const area = document.getElementById('preview-area');
+                                if (area) area.innerHTML = entry?.resultHtml || '<p class=&quot;placeholder&quot;>click preview to process</p>';
+                            "
+                        >
                     </div>
                 </div>
             </template>
