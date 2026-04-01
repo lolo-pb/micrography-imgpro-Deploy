@@ -74,8 +74,17 @@
                             <li
                                 :class="selected === f.name ? 'active' : ''"
                                 @click="selected = f.name"
-                                x-text="f.name"
-                            ></li>
+                            >
+                                <span x-text="f.name" class="image-name"></span>
+                                <button
+                                    class="remove-btn"
+                                    @click.stop="
+                                        URL.revokeObjectURL(f.url);
+                                        files = files.filter(e => e.name !== f.name);
+                                        if (selected === f.name) selected = files.length ? files[0].name : null;
+                                    "
+                                >&times;</button>
+                            </li>
                         </template>
                     </ul>
                 </section>
