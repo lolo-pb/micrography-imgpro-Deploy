@@ -24,7 +24,8 @@
         bhm_mult: 60
     },
     loading: false,
-    exporting: false
+    exporting: false,
+    cropSize: 1000
 }">
     <div class="layout">
         <aside class="sidebar">
@@ -102,7 +103,20 @@
                         <div x-show="mode === 'pro'">
                             {% include "params_pro.html" %}
                         </div>
+                        <button
+                            class="btn"
+                            style="margin-top: 0.5rem;"
+                            @click="
+                                const p = JSON.parse(JSON.stringify(params));
+                                files.forEach(f => f.params = p);
+                            "
+                        >Apply to all images</button>
                     </details>
+
+                    <label style="margin-top: 0.75rem;">
+                        Preview crop size <span x-text="cropSize + 'px'"></span>
+                        <input type="range" min="100" max="2000" step="50" x-model.number="cropSize">
+                    </label>
 
                     <button
                         class="btn primary"
@@ -116,6 +130,7 @@
                             fd.append('image', entry.file);
                             fd.append('mode', mode);
                             fd.append('params', JSON.stringify(params));
+                            fd.append('crop_size', cropSize);
                             fetch('/preview', { method: 'POST', body: fd })
                                 .then(r => r.text())
                                 .then(html => {
@@ -143,6 +158,19 @@
                     <label class="export-option">
                         <input type="checkbox" :checked="files.find(f => f.name === selected)?.exportStats" @change="files.find(f => f.name === selected).exportStats = $event.target.checked"> Data (stats)
                     </label>
+                    <button
+                        class="btn"
+                        style="margin-top: 0.5rem;"
+                        @click="
+                            const entry = files.find(f => f.name === selected);
+                            if (!entry) return;
+                            files.forEach(f => {
+                                f.exportResult = entry.exportResult;
+                                f.exportColoring = entry.exportColoring;
+                                f.exportStats = entry.exportStats;
+                            });
+                        "
+                    >Apply to all images</button>
                     <button
                         class="btn primary"
                         style="margin-top: 0.75rem;"

@@ -61,6 +61,7 @@ async def preview(
     image: UploadFile = File(),
     mode: str = Form(),
     params: str = Form(),
+    crop_size: int = Form(1000),
 ):
     raw = await image.read()
     arr = np.frombuffer(raw, dtype=np.uint8)
@@ -71,7 +72,7 @@ async def preview(
     core_params = parse_params(mode, json.loads(params))
 
     try:
-        out = run_preview(img, mode, core_params)
+        out = run_preview(img, mode, core_params, crop_size=crop_size)
     except Exception as e:
         return HTMLResponse(f"<p class='error'>processing error: {e}</p>", status_code=500)
 
