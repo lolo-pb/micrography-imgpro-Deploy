@@ -115,13 +115,19 @@
                         <button
                             class="btn"
                             style="margin-top: 0.5rem;"
+                            x-data="{ applied: false }"
                             @click="
                                 const src = files.find(f => f.name === selected);
                                 if (!src) return;
                                 const p = JSON.parse(JSON.stringify(src.params));
                                 files.forEach(f => f.params = p);
+                                applied = true;
+                                setTimeout(() => applied = false, 1500);
                             "
-                        >Apply to all images</button>
+                        >
+                            <span x-show="!applied">Apply to all images</span>
+                            <span x-show="applied">Done!</span>
+                        </button>
                     </details>
 
                     <label style="margin-top: 0.75rem;">
@@ -172,6 +178,7 @@
                     <button
                         class="btn"
                         style="margin-top: 0.5rem;"
+                        x-data="{ applied: false }"
                         @click="
                             const entry = files.find(f => f.name === selected);
                             if (!entry) return;
@@ -180,8 +187,13 @@
                                 f.exportColoring = entry.exportColoring;
                                 f.exportStats = entry.exportStats;
                             });
+                            applied = true;
+                            setTimeout(() => applied = false, 1500);
                         "
-                    >Apply to all images</button>
+                    >
+                        <span x-show="!applied">Apply to all images</span>
+                        <span x-show="applied">Done!</span>
+                    </button>
                     <button
                         class="btn primary"
                         style="margin-top: 0.75rem;"
