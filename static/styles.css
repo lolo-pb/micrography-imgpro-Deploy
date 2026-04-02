@@ -208,6 +208,33 @@ body {
     font-size: 0.875rem;
 }
 
+.debug-section {
+    margin-top: 1rem;
+}
+
+.debug-section summary {
+    font-size: 0.875rem;
+    color: #6b7280;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+}
+
+.debug-item {
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.debug-item p {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+}
+
+.debug-item img {
+    width: 60%;
+    border-radius: 0.25rem;
+}
+
 details summary {
     font-size: 0.875rem;
     font-weight: 500;
@@ -227,4 +254,82 @@ details summary {
 
 .export-option input[type="checkbox"] {
     margin-right: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #171717;
+        color: #e5e5e5;
+    }
+
+    .sidebar {
+        background: #141414;
+        border-right-color: #262626;
+    }
+
+    .sidebar h2,
+    .sidebar label span,
+    .preview-grid h2,
+    .debug-section summary,
+    .debug-item p,
+    details summary {
+        color: #a3a3a3;
+    }
+
+    .mode-selector button {
+        background: #141414;
+        border-color: #262626;
+        color: #e5e5e5;
+    }
+
+    .mode-selector button.active {
+        background: #e5e5e5;
+        color: #0a0a0a;
+        border-color: #e5e5e5;
+    }
+
+    .image-list li:hover,
+    .image-list li.active {
+        background: #262626;
+    }
+
+    .sidebar input[type="range"] {
+        background: #262626;
+    }
+
+    .sidebar input[type="range"]::-webkit-slider-thumb {
+        background: #e5e5e5;
+    }
+
+    .sidebar input[type="range"]::-moz-range-thumb {
+        background: #e5e5e5;
+    }
+
+    .btn {
+        border-color: #262626;
+        background: #141414;
+        color: #e5e5e5;
+    }
+
+    .btn.primary {
+        background: #e5e5e5;
+        color: #0a0a0a;
+        border-color: #e5e5e5;
+    }
+
+    .placeholder {
+        color: #525252;
+    }
+
+    .remove-btn {
+        color: #525252;
+    }
+
+    .remove-btn:hover {
+        color: #ef4444;
+    }
+
+    .sidebar input[type="number"] {
+        color: #a3a3a3;
+    }
 }
