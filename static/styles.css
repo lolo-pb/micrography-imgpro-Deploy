@@ -119,15 +119,10 @@ body {
     font-size: 0.875rem;
 }
 
-.sidebar input[type="number"] {
+.sidebar label span {
     float: right;
-    text-align: right;
     color: #6b7280;
     font-variant-numeric: tabular-nums;
-    background: transparent;
-    border: 0;
-    font-size: 0.875rem;
-    width: 4em;
 }
 
 .sidebar input[type="range"] {
@@ -208,27 +203,28 @@ body {
     margin-bottom: 0.5rem;
 }
 
-.stats-table {
-    width: 100%;
-    font-size: 0.875rem;
-    margin-top: 0.75rem;
-}
-
-.stats-table td {
-    padding: 0.25rem 0.5rem;
-}
-
-.stats-table td:first-child {
-    color: #6b7280;
-}
-
-.stats-table td:last-child {
-    text-align: right;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-}
-
 .error {
     color: #dc2626;
     font-size: 0.875rem;
+}
+
+details summary {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+}
+
+.export-option {
+    display: block;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+}
+
+.export-option input[type="checkbox"] {
+    margin-right: 0.5rem;
 }

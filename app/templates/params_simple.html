@@ -1,24 +1,24 @@
 <label>
-    Gamma <input type="number" min="0.1" max="5.0" step="0.1" x-model.number="params.gamma">
+    Gamma <span x-text="params.gamma"></span>
     <input type="range" min="0.1" max="5.0" step="0.1" x-model.number="params.gamma">
 </label>
 <label>
-    Otsu classes <input type="number" min="2" max="10" step="1" x-model.number="params.otsu_classes">
+    Otsu classes <span x-text="params.otsu_classes"></span>
     <input type="range" min="2" max="10" step="1" x-model.number="params.otsu_classes">
 </label>
 <label>
-    Class range low <input type="number" min="0" :max="params.otsu_classes - 1" step="1" x-model.number="params.otsu_range_low">
+    Class range low <span x-text="params.otsu_range_low"></span>
     <input type="range" min="0" :max="params.otsu_classes - 1" step="1" x-model.number="params.otsu_range_low">
 </label>
 <label>
-    Class range high <input type="number" min="0" :max="params.otsu_classes - 1" step="1" x-model.number="params.otsu_range_high">
+    Class range high <span x-text="params.otsu_range_high"></span>
     <input type="range" min="0" :max="params.otsu_classes - 1" step="1" x-model.number="params.otsu_range_high">
 </label>
 <label>
-    ws_ths_factor <input type="number" min="0.0001" max="0.2" step="0.0005" x-model.number="params.ws_ths_factor">
+    ws_ths_factor <span x-text="params.ws_ths_factor"></span>
     <input type="range" min="0.0001" max="0.2" step="0.0005" x-model.number="params.ws_ths_factor">
 </label>
 <label>
-    ws_gl_vecinity <input type="number" min="1" max="200" step="1" x-model.number="params.ws_gl_vecinity">
+    ws_gl_vecinity <span x-text="params.ws_gl_vecinity"></span>
     <input type="range" min="1" max="200" step="1" x-model.number="params.ws_gl_vecinity">
 </label>

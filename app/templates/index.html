@@ -23,7 +23,8 @@
         bhm_iter: 4,
         bhm_mult: 60
     },
-    loading: false
+    loading: false,
+    exporting: false
 }">
     <div class="layout">
         <aside class="sidebar">
@@ -56,7 +57,7 @@
                             const added = [];
                             for (const f of $event.target.files) {
                                 if (!files.find(e => e.name === f.name)) {
-                                    added.push({ name: f.name, file: f, url: URL.createObjectURL(f), resultHtml: null });
+                                    added.push({ name: f.name, file: f, url: URL.createObjectURL(f), resultHtml: null, exportResult: true, exportColoring: false, exportStats: false });
                                 }
                             }
                             files = [...files, ...added];
@@ -93,15 +94,15 @@
 
             <template x-if="selected">
                 <section>
-                    <h2>Parameters</h2>
-                    <!-- simple mode params -->
-                    <div x-show="mode === 'simple'">
-                        {% include "params_simple.html" %}
-                    </div>
-                    <!-- pro mode params -->
-                    <div x-show="mode === 'pro'">
-                        {% include "params_pro.html" %}
-                    </div>
+                    <details>
+                        <summary>Parameters</summary>
+                        <div x-show="mode === 'simple'">
+                            {% include "params_simple.html" %}
+                        </div>
+                        <div x-show="mode === 'pro'">
+                            {% include "params_pro.html" %}
+                        </div>
+                    </details>
 
                     <button
                         class="btn primary"
@@ -126,6 +127,51 @@
                     >
                         <span x-show="!loading">Preview</span>
                         <span x-show="loading">Processing...</span>
+                    </button>
+                </section>
+            </template>
+
+            <template x-if="files.length > 0">
+                <section>
+                    <h2>Export</h2>
+                    <label class="export-option">
+                        <input type="checkbox" :checked="files.find(f => f.name === selected)?.exportResult" @change="files.find(f => f.name === selected).exportResult = $event.target.checked"> Result
+                    </label>
+                    <label class="export-option">
+                        <input type="checkbox" :checked="files.find(f => f.name === selected)?.exportColoring" @change="files.find(f => f.name === selected).exportColoring = $event.target.checked"> Coloring
+                    </label>
+                    <label class="export-option">
+                        <input type="checkbox" :checked="files.find(f => f.name === selected)?.exportStats" @change="files.find(f => f.name === selected).exportStats = $event.target.checked"> Data (stats)
+                    </label>
+                    <button
+                        class="btn primary"
+                        style="margin-top: 0.75rem;"
+                        :disabled="exporting"
+                        @click="
+                            exporting = true;
+                            const fd = new FormData();
+                            files.forEach(f => fd.append('images', f.file));
+                            fd.append('mode', mode);
+                            fd.append('params', JSON.stringify(params));
+                            fd.append('export_flags', JSON.stringify(files.map(f => ({
+                                result: f.exportResult,
+                                coloring: f.exportColoring,
+                                stats: f.exportStats
+                            }))));
+                            fetch('/batch-export', { method: 'POST', body: fd })
+                                .then(r => r.blob())
+                                .then(blob => {
+                                    const a = document.createElement('a');
+                                    a.href = URL.createObjectURL(blob);
+                                    a.download = 'batch_results.zip';
+                                    a.click();
+                                    URL.revokeObjectURL(a.href);
+                                })
+                                .finally(() => exporting = false);
+                        "
+                    >
+                        <span x-show="!exporting">Process & Download All</span>
+                        <span x-show="exporting">Processing...</span>
                     </button>
                 </section>
             </template>

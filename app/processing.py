@@ -54,3 +54,16 @@ def run_preview(img: np.ndarray, mode: str, params: dict, crop_size: int = 1000)
     if mode == "pro":
         out["debug"] = debug
     return out
+
+
+def run_full(img: np.ndarray, mode: str, params: dict) -> dict:
+    if mode == "simple":
+        stats, segmentation, coloring = getMeResultsSimple(img, params)
+    else:
+        stats, segmentation, coloring = getMeResults(img, params, return_debug=False)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    getSegmentationFigure(segmentation, stats, "result", ax=ax)
+    result_img = fig_to_img(fig)
+
+    return {"stats": stats, "result": result_img, "coloring": coloring}
