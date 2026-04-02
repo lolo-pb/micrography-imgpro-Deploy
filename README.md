@@ -4,7 +4,8 @@ Micrograph image processing app for segmenting fibers, pores, resin, and undefin
 
 ## What is included
 
-- `app.py`: Single Streamlit web UI with a sidebar mode switch for Simple and Pro workflows.
+- `app/`: Web UI.
+- `app.py`: Streamlit web UI.
 - `controller.py`: command-line batch runner.
 - `getmeresults.py`, `getmefibers.py`, `getmeflashes.py`, `getmepores.py`: image processing pipeline modules.
 
@@ -25,16 +26,18 @@ pip install -r requirements.txt
 
 ## Run the app
 
-Start the Streamlit UI with:
+Start the web UI with:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Then open `http://localhost:8000` in the browser.
+
+The Streamlit UI can still be run with:
 
 ```powershell
 streamlit run app.py
-```
-
-Then open the local URL shown in the terminal, usually:
-
-```text
-http://localhost:8501
 ```
 
 ## Use the CLI
