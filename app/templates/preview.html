@@ -1,1 +1,12 @@
 <img src="{{ result_b64 }}" alt="result">
+{% if debug_images %}
+<details class="debug-section">
+    <summary>Debug images</summary>
+    {% for name, b64 in debug_images %}
+    <div class="debug-item">
+        <p>{{ name }}</p>
+        <img src="{{ b64 }}" alt="{{ name }}">
+    </div>
+    {% endfor %}
+</details>
+{% endif %}

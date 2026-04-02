@@ -79,6 +79,10 @@ async def preview(
     return templates.TemplateResponse(request, "preview.html", {
         "result_b64": to_png_b64(out["result"]),
         "stats": out["stats"],
+        "debug_images": [
+            (name, to_png_b64(img))
+            for name, img in out.get("debug", {}).items()
+        ],
     })
 
 

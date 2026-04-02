@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from common import getSegmentationFigure
 from getmeresults import getMeResults, getMeResultsSimple
+import getmefibers as gmf
 
 
 def center_crop(img: np.ndarray, size: int = 1000) -> np.ndarray:
@@ -43,6 +44,16 @@ def run_preview(img: np.ndarray, mode: str, params: dict, crop_size: int = 1000)
 
     if mode == "simple":
         stats, segmentation, coloring = getMeResultsSimple(cropped, params)
+        _, _, _, fiber_steps = gmf.getMeFibersGammaOtsuWatershed(
+            cropped,
+            gamma=params.get("gamma", 1.0),
+            ws_ths_factor=params.get("ws_ths_factor", 0.025),
+            ws_gl_vecinity=params.get("ws_gl_vecinity", 15),
+            otsu_classes=params["otsu_classes"],
+            otsu_range=params["otsu_range"],
+            return_steps=True,
+        )
+        debug = dict(fiber_steps)
     else:
         stats, segmentation, coloring, debug = getMeResults(cropped, params, return_debug=True)
 
@@ -50,10 +61,7 @@ def run_preview(img: np.ndarray, mode: str, params: dict, crop_size: int = 1000)
     getSegmentationFigure(segmentation, stats, "preview", ax=ax)
     result_img = fig_to_img(fig)
 
-    out = {"stats": stats, "result": result_img, "coloring": coloring}
-    if mode == "pro":
-        out["debug"] = debug
-    return out
+    return {"stats": stats, "result": result_img, "coloring": coloring, "debug": debug}
 
 
 def run_full(img: np.ndarray, mode: str, params: dict) -> dict:
