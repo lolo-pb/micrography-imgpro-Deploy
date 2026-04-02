@@ -11,7 +11,7 @@
     mode: 'simple',
     files: [],
     selected: null,
-    params: {
+    defaultParams: {
         gamma: 1.0,
         otsu_classes: 5,
         otsu_range_low: 3,
@@ -23,6 +23,11 @@
         bhm_iter: 4,
         bhm_mult: 60
     },
+    get params() {
+        const entry = this.files.find(f => f.name === this.selected);
+        return entry ? entry.params : this.defaultParams;
+    },
+    set params(_) {},
     loading: false,
     exporting: false,
     cropSize: 1000
@@ -58,7 +63,11 @@
                             const added = [];
                             for (const f of $event.target.files) {
                                 if (!files.find(e => e.name === f.name)) {
-                                    added.push({ name: f.name, file: f, url: URL.createObjectURL(f), resultHtml: null, exportResult: true, exportColoring: false, exportStats: false });
+                                    added.push({
+                                    name: f.name, file: f, url: URL.createObjectURL(f), resultHtml: null,
+                                    exportResult: true, exportColoring: false, exportStats: false,
+                                    params: JSON.parse(JSON.stringify(defaultParams))
+                                });
                                 }
                             }
                             files = [...files, ...added];
@@ -107,7 +116,9 @@
                             class="btn"
                             style="margin-top: 0.5rem;"
                             @click="
-                                const p = JSON.parse(JSON.stringify(params));
+                                const src = files.find(f => f.name === selected);
+                                if (!src) return;
+                                const p = JSON.parse(JSON.stringify(src.params));
                                 files.forEach(f => f.params = p);
                             "
                         >Apply to all images</button>
